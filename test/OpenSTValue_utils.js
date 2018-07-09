@@ -29,7 +29,7 @@ var Workers = artifacts.require("./Workers.sol");
 /// @dev Deploy
 module.exports.deployOpenSTValue = async (artifacts, accounts) => {
 	const chainIdValue = 3
-		, valueToken   = await SimpleToken.new()
+		, valueToken   = await SimpleToken.new({from:accounts[0]})
 		, registrar    = accounts[1]
 		, admin = accounts[2]
 		, ops = accounts[3]
@@ -56,9 +56,10 @@ module.exports.deployOpenSTValue = async (artifacts, accounts) => {
 	return {
 		valueToken  : valueToken,
 		openSTValue : openSTValue,
-		workers: workers
+		workers: workers,
+		deployer : accounts[0]
 	}
-}
+};
 
 // Stake address is returned by UtilityTokenRegistered but verified elsewhere
 module.exports.checkUtilityTokenRegisteredEvent = (event, _uuid, _symbol, _name, _decimals, _conversionRate, _chainIdUtility, _stakingAccount) => {
