@@ -1,3 +1,18 @@
+const openstValueUtils = require('./OpenSTValue_utils')
+  , openstUtilityUtils = require('./OpenSTUtility_utils')
+  , Core = artifacts.require("./Core.sol")
+;
+
+module.exports.deployContracts = async function (artifacts, accounts, registrar, chainIdValue, chainIdUtility) {
+
+  let utilityContract = await openstUtilityUtils.deployOpenSTUtility(artifacts, accounts);
+  let valueContract = await openstValueUtils.deployOpenSTValue(artifacts, accounts)
+    , workers = valueContract.workers;
+  let core = await Core.new(registrar, chainIdValue, chainIdUtility, utilityContract.openSTUtility.address, workers.address);
+  return {utilityContract, valueContract, core};
+}
+
+
 module.exports.decodeStakeEvent = function (log) {
   let STValue = log.args._amountST.toNumber()
     , BTValue = log.args._amountUT.toNumber()

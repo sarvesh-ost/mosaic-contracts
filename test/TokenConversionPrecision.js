@@ -1,7 +1,4 @@
-const openstValueUtils = require('./OpenSTValue_utils')
-  , openstUtilityUtils = require('./OpenSTUtility_utils')
-  , tokenConversionUtils = require('./TokenConversionPrecision_utils')
-  , Core = artifacts.require("./Core.sol")
+const tokenConversionUtils = require('./TokenConversionPrecision_utils')
   , HashLock = require('./lib/hash_lock.js')
 ;
 
@@ -10,7 +7,7 @@ contract('Token conversion precision test', function (accounts) {
   const registrar = accounts[1];
 
 
-  describe(' Branded Token precision test', async () => {
+  describe(' Value token to Branded Token precision test when Value token has more value than branded token', async () => {
 
     let openSTValue, openSTUtility, staker = accounts[0],
       chainIdValue = 3, chainIdUtility = 1, valueToken, uuid;
@@ -22,18 +19,12 @@ contract('Token conversion precision test', function (accounts) {
     ;
 
     before(async () => {
+      let {utilityContract, valueContract, core} = await tokenConversionUtils.deployContracts(artifacts, accounts, registrar, chainIdValue, chainIdUtility);
 
-      let utilityContract = await openstUtilityUtils.deployOpenSTUtility(artifacts, accounts);
       openSTUtility = utilityContract.openSTUtility;
-
-      let valueContract = await openstValueUtils.deployOpenSTValue(artifacts, accounts)
-        , workers = valueContract.workers;
-
-      openSTValue = valueContract.openSTValue;
       valueToken = valueContract.valueToken;
       staker = valueContract.deployer;
-
-      let core = await Core.new(registrar, chainIdValue, chainIdUtility, openSTUtility.address, workers.address);
+      openSTValue = valueContract.openSTValue;
       await openSTValue.addCore(core.address, {from: registrar});
 
       uuid = await openSTValue.hashUuid.call(symbol, name, chainIdValue, chainIdUtility, openSTUtility.address, conversionRate, conversionRateDecimals);
@@ -47,21 +38,21 @@ contract('Token conversion precision test', function (accounts) {
 
     it("Should receive expected number of branded token  on  single stake and  value token on unstake request", async () => {
 
-      const amountST = 2;
+      const amountSTInWei = 2;
 
       const lock = HashLock.getHashLock();
       let hashLock = lock.l
         , unlockHash = lock.s;
 
-      let decodedStakeEvent = await tokenConversionUtils.processStake(valueToken, openSTValue, amountST, staker, uuid, hashLock, unlockHash)
-        , expectedBTValue = (amountST * conversionRate) / 10 ** conversionRateDecimals;
+      let decodedStakeEvent = await tokenConversionUtils.processStake(valueToken, openSTValue, amountSTInWei, staker, uuid, hashLock, unlockHash)
+        , expectedBTValue = (amountSTInWei * conversionRate) / 10 ** conversionRateDecimals;
       assert.equal(decodedStakeEvent.BTValue, expectedBTValue, `Minted BT tokens are ${decodedStakeEvent.BTValue} but expected value is ${expectedBTValue}`);
-      let BTValue = decodedStakeEvent.BTValue
+      let BTValueInWei = decodedStakeEvent.BTValue
         , redeemNonce = decodedStakeEvent.nonce + 1;
 
-      let decodeUnStakeEvent = await tokenConversionUtils.processUnstake(openSTValue, uuid, staker, redeemNonce, BTValue, hashLock, registrar);
-      assert.equal(amountST, decodeUnStakeEvent.STValue, `Staked value token ${amountST} is not equal to un-staked value token ${decodeUnStakeEvent.STValue}`)
-    })
+      let decodeUnStakeEvent = await tokenConversionUtils.processUnstake(openSTValue, uuid, staker, redeemNonce, BTValueInWei, hashLock, registrar);
+      assert.equal(amountSTInWei, decodeUnStakeEvent.STValue, `Staked value token ${amountSTInWei} is not equal to un-staked value token ${decodeUnStakeEvent.STValue}`)
+    });
 
 
     it("Should receive expected number of value token on unstake request of BT value less then one value token ", async () => {
@@ -73,13 +64,11 @@ contract('Token conversion precision test', function (accounts) {
         , unlockHash = lock.s;
 
       let decodedStakeEvent = await tokenConversionUtils.processStake(valueToken, openSTValue, amountST, staker, uuid, hashLock, unlockHash)
-      /*  , expectedBTValue = (amountST * conversionRate) / 10 ** conversionRateDecimals;
-     // assert.equal(decodedStakeEvent.BTValue, expectedBTValue, `Minted BT tokens are ${decodedStakeEvent.BTValue} but expected value is ${expectedBTValue}`);*/
-      let BTValue = 5
+      let BTValueInWei = 5
         , redeemNonce = decodedStakeEvent.nonce + 1
-        , expectedST = BTValue * (10 ** conversionRateDecimals) / conversionRate;
+        , expectedST = BTValueInWei * (10 ** conversionRateDecimals) / conversionRate;
 
-      let decodeUnStakeEvent = await tokenConversionUtils.processUnstake(openSTValue, uuid, staker, redeemNonce, BTValue, hashLock, registrar);
+      let decodeUnStakeEvent = await tokenConversionUtils.processUnstake(openSTValue, uuid, staker, redeemNonce, BTValueInWei, hashLock, registrar);
       assert.equal(amountST, decodeUnStakeEvent.STValue, `Staked value token ${expectedST} is not equal to un-staked value token ${decodeUnStakeEvent.STValue}`)
     });
 
@@ -90,32 +79,77 @@ contract('Token conversion precision test', function (accounts) {
       let hashLock = lock.l
         , unlockHash = lock.s;
 
-      const stakeRequestAmount = [2, 2, 2, 29, 13, 23, 31, 57, 63, 70, 80];
-      let totalBTValue = 0;
+      const stakeRequestAmount = [2, 2, 2, 29, 13, 23, 31, 57, 63, 70, 80, 2, 2, 2, 29, 13, 23, 31, 57, 63, 70, 80];
+      let totalBTValueInWei = 0;
       let redeemNonce = 0;
-      let totalAmountST = 0;
+      let totalAmountSTInWei = 0;
       let totalError = 0;
       for (let i = 0; i < stakeRequestAmount.length; i++) {
         let amountST = stakeRequestAmount[i]
           ,
           decodedStakeEvent = await tokenConversionUtils.processStake(valueToken, openSTValue, amountST, staker, uuid, hashLock, unlockHash);
 
-        totalAmountST += amountST;
+        totalAmountSTInWei += amountST;
         let expectedBT = (amountST * conversionRate) / 10 ** conversionRateDecimals;
-        let errorBT = expectedBT - decodedStakeEvent.BTValue;
-        totalError += errorBT;
-       // console.log(`amount ST ${amountST}   amountBT  ${decodedStakeEvent.BTValue} ,  expected BT ${expectedBT} error  ${expectedBT - decodedStakeEvent.BTValue}`);
+        totalError += expectedBT - decodedStakeEvent.BTValue;
 
-        totalBTValue += decodedStakeEvent.BTValue;
+        totalBTValueInWei += decodedStakeEvent.BTValue;
         redeemNonce = decodedStakeEvent.nonce + 1;
       }
-
-     // console.log("Total Error BT  ", totalError);
-
-      totalBTValue = 5;
-      let decodeUnStakeEvent = await tokenConversionUtils.processUnstake(openSTValue, uuid, staker, redeemNonce, totalBTValue, hashLock, registrar);
-      assert.equal(totalAmountST, decodeUnStakeEvent.STValue, `Staked value token ${totalAmountST} is not equal to un-staked value token ${decodeUnStakeEvent.STValue}`)
+      console.log("total BT valuee   ", totalBTValueInWei);
+      let decodeUnStakeEvent = await tokenConversionUtils.processUnstake(openSTValue, uuid, staker, redeemNonce, totalBTValueInWei, hashLock, registrar);
+      assert.equal(totalAmountSTInWei, decodeUnStakeEvent.STValue, `Staked value token ${totalAmountSTInWei} is not equal to un-staked value token ${decodeUnStakeEvent.STValue}`)
     });
+  });
+
+  describe(' Value token to Branded Token precision test when Value token has less value than branded token', async () => {
+
+    let openSTValue, openSTUtility, staker = accounts[0],
+      chainIdValue = 3, chainIdUtility = 1, valueToken, uuid;
+
+    let symbol = 'BT'
+      , name = 'Branded Token'
+      , conversionRate = 1
+      , conversionRateDecimals = 5
+    ;
+
+    before(async () => {
+      let {utilityContract, valueContract, core} = await tokenConversionUtils.deployContracts(artifacts, accounts, registrar, chainIdValue, chainIdUtility);
+
+      openSTUtility = utilityContract.openSTUtility;
+      valueToken = valueContract.valueToken;
+      staker = valueContract.deployer;
+      openSTValue = valueContract.openSTValue;
+      await openSTValue.addCore(core.address, {from: registrar});
+
+      uuid = await openSTValue.hashUuid.call(symbol, name, chainIdValue, chainIdUtility, openSTUtility.address, conversionRate, conversionRateDecimals);
+      await registerTokenValue(symbol, name, conversionRate, conversionRateDecimals, uuid);
+    });
+
+
+    async function registerTokenValue(symbol, name, conversionRate, conversionRateDecimals, uuid) {
+      await openSTValue.registerUtilityToken(symbol, name, conversionRate, conversionRateDecimals, chainIdUtility, staker, uuid, {from: registrar});
+    }
+
+    it("Should receive expected number of branded token  on  single stake and  value token on unstake request", async () => {
+
+      const amountSTInWei = 100000;
+
+      const lock = HashLock.getHashLock();
+      let hashLock = lock.l
+        , unlockHash = lock.s;
+
+      let decodedStakeEvent = await tokenConversionUtils.processStake(valueToken, openSTValue, amountSTInWei, staker, uuid, hashLock, unlockHash)
+        , expectedBTValue = (amountSTInWei * conversionRate) / 10 ** conversionRateDecimals;
+      assert.equal(decodedStakeEvent.BTValue, expectedBTValue, `Minted BT tokens are ${decodedStakeEvent.BTValue} but expected value is ${expectedBTValue}`);
+      let BTValueInWei = decodedStakeEvent.BTValue
+        , redeemNonce = decodedStakeEvent.nonce + 1;
+
+      let decodeUnStakeEvent = await tokenConversionUtils.processUnstake(openSTValue, uuid, staker, redeemNonce, BTValueInWei, hashLock, registrar);
+      assert.equal(amountSTInWei, decodeUnStakeEvent.STValue, `Staked value token ${amountSTInWei} is not equal to un-staked value token ${decodeUnStakeEvent.STValue}`)
+    });
+
+
   });
 
 });
