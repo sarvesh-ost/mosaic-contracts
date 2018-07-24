@@ -3,8 +3,8 @@ pragma solidity ^0.4.23;
 contract TokenHolder {
     bytes32 secret;
     mapping(address => bool) devices;
-    mapping(address => mapping(bytes32 => bool)) usedSigs;
-
+    uint128 consumedNonces;
+    uint128 currentAllowedNonces;
 
     function addDevice(address device) returns (bool){
         devices[device] = true;
@@ -23,12 +23,31 @@ contract TokenHolder {
         return true;
     }
 
-    function validateSession_2(bytes32 msgHash, uint8 v, bytes32 r, bytes32 s) returns (bool) {
+    event Test(bytes32 msg, bytes32 created);
+
+    function validateSession_2(bytes32 msgHash, uint8 v, bytes32 r, bytes32 s, uint128 nonce) returns (bool) {
+        bytes32 message = prefixed(keccak256(uint256(nonce)));
+
         address _addr = ecrecover(msgHash, v, r, s);
+        require(msgHash == message);
         require(devices[_addr] == true);
-        require(usedSigs[_addr][msgHash] == false);
-        usedSigs[_addr][msgHash] = true;
+        //check if current bit is consumed
+        require((currentAllowedNonces & (1 << nonce)) == 0);
+        //check for consumed nonces
+        require(consumedNonces < 128 || consumedNonces < nonce);
+        //set bit which is consumed
+        currentAllowedNonces = currentAllowedNonces | 1 << nonce;
+
+        //check if all the bits are exhausted
+        if (((currentAllowedNonces + 1) & currentAllowedNonces) == 0) {
+            consumedNonces = consumedNonces + 128;
+            currentAllowedNonces = 0;
+        }
         return true;
+    }
+
+    function prefixed(bytes32 hash) internal pure returns (bytes32) {
+        return keccak256("\x19Ethereum Signed Message:\n32", hash);
     }
 
 }
