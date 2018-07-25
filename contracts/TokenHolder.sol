@@ -32,6 +32,9 @@ contract TokenHolder {
         require(msgHash == message);
         require(devices[_addr] == true);
 
+        //check for consumed nonces
+        require(consumedNonces < 128 || consumedNonces < nonce);
+
         //Rotate consumed nonces
         if (nonce > (consumedNonces + 128)) {
             consumedNonces = consumedNonces + 128;
@@ -41,8 +44,6 @@ contract TokenHolder {
         nonce = nonce % 128;
         //check if current bit is consumed
         require((currentAllowedNonces & (1 << nonce)) == 0);
-        //check for consumed nonces
-        require(consumedNonces < 128 || consumedNonces < nonce);
         //set bit which is consumed
         currentAllowedNonces = currentAllowedNonces | 1 << nonce;
 
