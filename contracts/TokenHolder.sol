@@ -31,6 +31,14 @@ contract TokenHolder {
         address _addr = ecrecover(msgHash, v, r, s);
         require(msgHash == message);
         require(devices[_addr] == true);
+
+        //Rotate consumed nonces
+        if (nonce > (consumedNonces + 128)) {
+            consumedNonces = consumedNonces + 128;
+            currentAllowedNonces = 0;
+        }
+        //Bring nonce in range of 0-127
+        nonce = nonce % 128;
         //check if current bit is consumed
         require((currentAllowedNonces & (1 << nonce)) == 0);
         //check for consumed nonces
@@ -38,11 +46,6 @@ contract TokenHolder {
         //set bit which is consumed
         currentAllowedNonces = currentAllowedNonces | 1 << nonce;
 
-        //check if all the bits are exhausted
-        if (((currentAllowedNonces + 1) & currentAllowedNonces) == 0) {
-            consumedNonces = consumedNonces + 128;
-            currentAllowedNonces = 0;
-        }
         return true;
     }
 
