@@ -35,15 +35,15 @@ contract TokenHolder {
         //check nonce should be greater than 0
         require(nonce > 0);
         //check for consumed nonces
-        require(consumedNonces < 5 || consumedNonces < nonce);
+        require(consumedNonces < 128 || consumedNonces < nonce);
 
         //Rotate consumed nonces
-        if (nonce > (consumedNonces + 5)) {
-            consumedNonces = consumedNonces + 5;
+        if (nonce > (consumedNonces + 128)) {
+            consumedNonces = consumedNonces + 128;
             currentAllowedNonces = 0;
         }
         //Bring nonce in range of 0-127
-        nonce = nonce % 5;
+        nonce = nonce % 128;
         //check if current bit is consumed
         require((currentAllowedNonces & (1 << nonce)) == 0);
         //set bit which is consumed
