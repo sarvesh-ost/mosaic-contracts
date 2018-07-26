@@ -3,7 +3,7 @@ pragma solidity ^0.4.23;
 contract TokenHolder {
     bytes32 secret;
     mapping(address => bool) devices;
-    uint128 consumedNonces;
+    uint256 consumedNonces;
     uint128 currentAllowedNonces;
 
     function addDevice(address device) returns (bool){
