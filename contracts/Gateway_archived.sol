@@ -1,26 +1,72 @@
+/* solhint-disable-next-line compiler-fixed */
 pragma solidity ^0.4.23;
 
+// Copyright 2018 OpenST Ltd.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//    http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// ----------------------------------------------------------------------------
+// Value chain: Gateway
+//
+// http://www.simpletoken.org/
+//
+// ----------------------------------------------------------------------------
+
 import "./ProtocolVersioned.sol";
+import "./OpenSTValueInterface.sol";
+import "./EIP20Interface.sol";
 import "./Owned.sol";
 import "./WorkersInterface.sol";
-import "./TokenConversion.sol"; // this will be interface
-import "/BrandedTokenStake.sol";
 
+/**
+ *  @title Gateway contract which implements ProtocolVersioned, Owned.
+ *
+ *  @notice Gateway contract is staking Gateway that separates the concerns of staker and staking processor.
+ *          Stake process is executed through Gateway contract rather than directly with the protocol contract.
+ *          The Gateway contract will serve the role of staking account rather than an external account.
+ */
 contract Gateway is ProtocolVersioned, Owned {
 
-    bytes public coGatewayCodeHash;
+    /** Events */
 
+    /** Below event is emitted after successful execution of requestStake */
+    event StakeRequested(address _staker, uint256 _amount, address _beneficiary);
+    /** Below event is emitted after successful execution of revertStakeRequest */
+    event StakeRequestReverted(address _staker, uint256 _amount);
+    /** Below event is emitted after successful execution of rejectStakeRequest */
+    event StakeRequestRejected(address _staker, uint256 _amount, uint8 _reason);
+    /** Below event is emitted after successful execution of acceptStakeRequest */
+    event StakeRequestAccepted(
+      address _staker,
+      uint256 _amountST,
+      uint256 _amountUT,
+      uint256 _nonce,
+      uint256 _unlockHeight,
+      bytes32 _stakingIntentHash);
+    /** Below event is emitted after successful execution of setWorkers */
+    event WorkersSet(WorkersInterface _workers);
+
+    /** Storage */
+
+    /** Storing stake requests */
     mapping(address /*staker */ => StakeRequest) public stakeRequests;
     /** Storing workers contract address */
     WorkersInterface public workers;
     /** Storing bounty amount that will be used while accepting stake */
     uint256 public bounty;
     /** Storing utility token UUID */
-    TokenConversion public tokenConversion;
+    bytes32 public uuid;
 
-    BrandedTokenStake public brandedTokenStake;
-
-    address core;
     /** Structures */
 
     struct StakeRequest {
@@ -28,12 +74,6 @@ contract Gateway is ProtocolVersioned, Owned {
         uint256 unlockHeight;
         address beneficiary;
         bytes32 hashLock;
-    }
-
-    struct CoGateway {
-        address coGateway;
-        bytes codeHash;
-        uint256 chainId;
     }
 
     /** Public functions */
