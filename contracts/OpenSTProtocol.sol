@@ -44,7 +44,8 @@ library OpenSTProtocol {
     internal
     returns (bool /* success*/){
 
-        require(EIP20Interface(_brandedToken).transferFrom(msg.sender, address(this), _amount));
+        //todo  duplicate
+        //require(EIP20Interface(_brandedToken).transferFrom(msg.sender, address(this), _amount));
 
         _protocolStorage.conversionRequests[msg.sender] = ConversionRequest({
             amount : _amount,
