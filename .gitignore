@@ -16,6 +16,8 @@ node_modules
 #Dont track idea file
 .idea/
 
+build/
+
 # LaTeX auxiliary files
 *.aux
 *.log

@@ -15,7 +15,13 @@ contract Gateway is ProtocolVersioned, Owned {
         uint256 _amount,
         uint256 _nonce,
         uint256 _unlockHeight,
-        bytes32 _stakingIntentHash);
+        bytes32 _stakingIntentHash,
+        bytes32 _stakingIntentKeyHash);
+
+    event StakingIntentDeclared(bytes32 indexed _uuid, address indexed _staker,
+        uint256 _stakerNonce, bytes32 _intentKeyHash, address _beneficiary, uint256 _amount,
+        uint256 _unlockHeight, bytes32 _stakingIntentHash);
+
 
     bytes32 public uuid;
     WorkersInterface public workers;
@@ -60,14 +66,14 @@ contract Gateway is ProtocolVersioned, Owned {
         return true;
     }
 
-/*
     function acceptStakeRequest(address _staker, bytes32 _hashLock)
         external
         returns (
-            uint256 amountUT,
-            uint256 nonce,
-            uint256 unlockHeight,
-            bytes32 stakingIntentHash)
+            uint256 _amount,
+            uint256 _nonce,
+            uint256 _unlockHeight,
+            bytes32 _stakingIntentHash,
+            bytes32 _stakingIntentKeyHash)
     {
         // check if the caller is whitelisted worker
         require(workers.isWorker(msg.sender));
@@ -83,27 +89,52 @@ contract Gateway is ProtocolVersioned, Owned {
         // check if _hashLock is not 0
         require(_hashLock != bytes32(0));
 
-        // Transfer bounty amount from worker to Gateway contract
-        require(valueToken.transferFrom(msg.sender, address(this), bounty));
 
-        (amountUT, nonce, unlockHeight, stakingIntentHash) = OpenSTProtocol.stake(
+        (_amount, _nonce, _unlockHeight, _stakingIntentHash, _stakingIntentKeyHash) = OpenSTProtocol.acceptConversion(
             protocolStorage,
             uuid,
-            stakeRequest.amount,
-            stakeRequest.beneficiary,
-            _hashLock,
+            valueToken,
+            bounty,
             _staker);
 
-        // Check if the stake function call did not result in to error.
-        require(stakingIntentHash != bytes32(0));
+        assert(_stakingIntentHash != bytes32(0));
 
-        stakeRequests[_staker].unlockHeight = unlockHeight;
-        stakeRequests[_staker].hashLock = _hashLock;
+        emit StakeRequestAccepted(_staker, _amount, _nonce, _unlockHeight, _stakingIntentHash, _stakingIntentKeyHash);
 
-        emit StakeRequestAccepted(_staker, stakeRequest.amount, amountUT, nonce, unlockHeight, stakingIntentHash);
-
-        return (amountUT, nonce, unlockHeight, stakingIntentHash);
+        emit StakingIntentDeclared(uuid, _staker, _nonce, _stakingIntentKeyHash, stakeRequest.beneficiary,
+            _amount, _unlockHeight, _stakingIntentHash);
+        return (_amount, _nonce, _unlockHeight, _stakingIntentHash, _stakingIntentKeyHash);
     }
 
-*/
+
+    function stake(
+        uint256 _amount,
+        address _beneficiary,
+        bytes32 _hashLock)
+    external
+    returns (
+        uint256 ,
+        uint256 _nonce,
+        uint256 _unlockHeight,
+        bytes32 _stakingIntentHash,
+        bytes32 _stakingIntentKeyHash)
+    {
+        require(_amount > uint256(0));
+        require(_beneficiary != address(0));
+
+        (, _nonce, _unlockHeight, _stakingIntentHash, _stakingIntentKeyHash) = OpenSTProtocol.conversionIntent(
+            protocolStorage,
+            valueToken,
+            uuid,
+            _amount,
+            _beneficiary,
+            _hashLock,
+            msg.sender);
+
+        emit StakingIntentDeclared(uuid, msg.sender, _nonce, _stakingIntentKeyHash, _beneficiary,
+            _amount, _unlockHeight, _stakingIntentHash);
+
+        return (_amount, _nonce, _unlockHeight, _stakingIntentHash, _stakingIntentKeyHash);
+    }
+
 }
