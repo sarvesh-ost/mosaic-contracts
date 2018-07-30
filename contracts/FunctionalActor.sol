@@ -45,7 +45,7 @@ contract FunctionalActor is Owned {
         existed = (functionalActors[_address] > 0);
 
         delete functionalActors[_address];
-        emit FunctionalActorRemoved(_worker, existed);
+        emit FunctionalActorRemoved(_address, existed);
 
         return existed;
     }
