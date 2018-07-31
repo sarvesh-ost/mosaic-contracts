@@ -134,13 +134,19 @@ library OpenSTProtocol {
         Conversion storage conversion = _protocolStorage.conversions[_conversionIntent];
         require(conversion.hashLock == keccak256(abi.encodePacked(_unlockSecret)));
         //Todo check if staker address is defined then it can only process
+
         require(EIP20Interface(_brandedToken).transfer(_protocolStorage.stakeAddress, conversion.amount));
+         //Todo Stake and mint has different implementation
+        require(UtilityTokenInterface(_brandedToken).burn(redemption.redeemer, redemption.amountUT));
+
         converter = conversion.converter;
         amount = conversion.amount;
         delete _protocolStorage.intents[HasherLib.hashIntentKey(conversion.converter, conversion.nonce)];
         delete _protocolStorage.conversions[_conversionIntent];
         return (converter, amount);
     }
+
+
 
     function rejectConversion(){
 
