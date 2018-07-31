@@ -3,6 +3,7 @@ pragma solidity ^0.4.23;
 import "./CoGateway.sol";
 import "./EIP20Interface.sol";
 import "./HasherLib.sol";
+import "./UtilityTokenInterface.sol";
 
 library OpenSTProtocol {
 
@@ -137,10 +138,11 @@ library OpenSTProtocol {
 
         require(EIP20Interface(_brandedToken).transfer(_protocolStorage.stakeAddress, conversion.amount));
          //Todo Stake and mint has different implementation
-        require(UtilityTokenInterface(_brandedToken).burn(redemption.redeemer, redemption.amountUT));
-
         converter = conversion.converter;
         amount = conversion.amount;
+        require(UtilityTokenInterface(_brandedToken).burn(converter, amount));
+
+
         delete _protocolStorage.intents[HasherLib.hashIntentKey(conversion.converter, conversion.nonce)];
         delete _protocolStorage.conversions[_conversionIntent];
         return (converter, amount);

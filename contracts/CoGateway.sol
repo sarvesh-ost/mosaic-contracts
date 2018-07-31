@@ -25,6 +25,15 @@ contract CoGateway is ProtocolVersioned, Owned {
         uint256 _unlockHeight,
         bytes32 redeemIntentHash);
 
+    event ProcessedRedemption(
+        bytes32 _uuid,
+        bytes32 _redemptionIntentHash,
+        address _brandedToken,
+        address _redeemer,
+        address _beneficiary,
+        uint256 amount,
+        bytes32 _unlockSecret);
+
     constructor(){
 
     }
@@ -104,6 +113,34 @@ contract CoGateway is ProtocolVersioned, Owned {
         emit RedeemIntentDeclared(uuid, msg.sender, nonce, intentKeyHash, _beneficiary, amount, unlockHeight, redeemIntentHash);
 
         return (amount, nonce, unlockHeight, redeemIntentHash, intentKeyHash);
+    }
+
+
+    function processRedeem(
+        bytes32 _redemptionIntentHash,
+        bytes32 _unlockSecret)
+    returns (
+        address redeemer,
+        uint256 amount
+    )
+    {
+
+        require(_redemptionIntentHash != "");
+
+        OpenSTProtocol.Conversion storage redeem = protocolStorage.conversions[_redemptionIntentHash];
+        address beneficiary = redeem.beneficiary;
+
+        require(redeem.converter != address(0));
+        require(redeem.hashLock != bytes32(0));
+        require(redeem.beneficiary != address(0));
+
+
+        (redeemer, amount) = OpenSTProtocol.processConversion(protocolStorage, brandedToken, _redemptionIntentHash, _unlockSecret);
+
+        emit ProcessedRedemption(uuid, _redemptionIntentHash, brandedToken,
+            redeemer, beneficiary, amount, _unlockSecret);
+
+        return (redeemer, amount);
     }
 
 }
