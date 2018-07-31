@@ -6,6 +6,7 @@ import "./WorkersInterface.sol";
 import "./ValueToken.sol"; // this will be interface
 import "./BrandedTokenStake.sol";
 import "./OpenSTProtocol.sol";
+import "./EIP20Interface.sol";
 
 contract Gateway is ProtocolVersioned, Owned {
 
@@ -25,7 +26,7 @@ contract Gateway is ProtocolVersioned, Owned {
 
     bytes32 public uuid;
     WorkersInterface public workers;
-    address public valueToken;
+    EIP20Interface public valueToken;
     uint256 public bounty;
     OpenSTProtocol.ProtocolStorage protocolStorage;
 
@@ -135,6 +136,44 @@ contract Gateway is ProtocolVersioned, Owned {
             _amount, _unlockHeight, _stakingIntentHash);
 
         return (_amount, _nonce, _unlockHeight, _stakingIntentHash, _stakingIntentKeyHash);
+    }
+
+
+    function processStaking(
+        bytes32 _stakingIntentHash,
+        bytes32 _unlockSecret)
+    external
+    returns (address stakerAddress, uint256 stakeRequestAmount)
+    {
+        require(_stakingIntentHash != bytes32(0));
+
+        OpenSTProtocol.Conversion storage conversion =  protocolStorage.conversions[_stakingIntentHash];
+        require(conversion.converter != address(0));
+
+        OpenSTProtocol.ConversionRequest storage conversionRequest = protocolStorage.conversionRequests[conversion.converter];
+
+        // check if the stake request exists
+        require(conversionRequest.beneficiary != address(0));
+
+        // check if the stake request was accepted
+        require(conversionRequest.hashLock != bytes32(0));
+
+        (stakerAddress, stakeRequestAmount) = OpenSTProtocol.processConversion(protocolStorage, valueToken, _stakingIntentHash, _unlockSecret);
+
+        // check if the stake address is not 0
+        require(stakerAddress != address(0));
+
+        //If the msg.sender is whitelited worker then transfer the bounty amount to Workers contract
+        //else transfer the bounty to msg.sender.
+        if (workers.isWorker(msg.sender)) {
+            // Transfer bounty amount to the workers contract address
+            require(valueToken.transfer(workers, bounty));
+        } else {
+            //Transfer bounty amount to the msg.sender account
+            require(valueToken.transfer(msg.sender, bounty));
+        }
+
+        return (stakerAddress, stakeRequestAmount);
     }
 
 }
