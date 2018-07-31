@@ -7,12 +7,15 @@ import "./HasherLib.sol";
 library OpenSTProtocol {
 
 
-
+    //Todo Staker, redeemer, SimpleStake, BrandedToken address should be in this storage?
     struct ProtocolStorage {
         uint256 blocksToWaitShort;
         uint256 blocksToWaitLong;
+        address stakeAddress; //simple stake or Branded Token stake //todo discuss if ost needs to transfer to simple stake
         mapping(address => uint256) nonces;
+        //request stakes and request redeem
         mapping(address /*converter */ => ConversionRequest) conversionRequests;
+        //stakes and redeem
         mapping(bytes32 /*intentHash */ => Conversion) conversions;
         mapping(bytes32 => bytes32) intents;
     }
@@ -117,8 +120,26 @@ library OpenSTProtocol {
 
         return (_amount, nonce, unlockHeight, intentHash, intentKeyHash);
     }
-    function processConversion(){
 
+    function processConversion(
+        ProtocolStorage storage _protocolStorage,
+        address _brandedToken,
+        bytes32 _conversionIntent,
+        bytes32 _unlockSecret
+    )
+    returns (
+        address converter,
+        uint256 amount
+    ){
+        Conversion storage conversion = _protocolStorage.conversions[_conversionIntent];
+        require(conversion.hashLock == keccak256(abi.encodePacked(_unlockSecret)));
+        //Todo check if staker address is defined then it can only process
+        require(EIP20Interface(_brandedToken).transfer(_protocolStorage.stakeAddress, conversion.amount));
+        converter = conversion.converter;
+        amount = conversion.amount;
+        delete _protocolStorage.intents[HasherLib.hashIntentKey(conversion.converter, conversion.nonce)];
+        delete _protocolStorage.conversions[_conversionIntent];
+        return (converter, amount);
     }
 
     function rejectConversion(){
