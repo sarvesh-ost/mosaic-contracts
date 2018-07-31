@@ -23,6 +23,9 @@ contract Gateway is ProtocolVersioned, Owned {
         uint256 _stakerNonce, bytes32 _intentKeyHash, address _beneficiary, uint256 _amount,
         uint256 _unlockHeight, bytes32 _stakingIntentHash);
 
+    event ProcessedStake(bytes32 indexed _uuid, bytes32 indexed _stakingIntentHash,
+        address _stake, address _staker, uint256 _amount, bytes32 _unlockSecret);
+
 
     bytes32 public uuid;
     WorkersInterface public workers;
@@ -161,7 +164,7 @@ contract Gateway is ProtocolVersioned, Owned {
         (stakerAddress, stakeRequestAmount) = OpenSTProtocol.processConversion(protocolStorage, valueToken, _stakingIntentHash, _unlockSecret);
 
         // check if the stake address is not 0
-        require(stakerAddress != address(0));
+        assert(stakerAddress != address(0));
 
         //If the msg.sender is whitelited worker then transfer the bounty amount to Workers contract
         //else transfer the bounty to msg.sender.
@@ -173,7 +176,10 @@ contract Gateway is ProtocolVersioned, Owned {
             require(valueToken.transfer(msg.sender, bounty));
         }
 
-        return (stakerAddress, stakeRequestAmount);
+        emit ProcessedStake(uuid, _stakingIntentHash, protocolStorage.stakeAddress, stakerAddress, stakeRequestAmount, _unlockSecret);
+
+
+    return (stakerAddress, stakeRequestAmount);
     }
 
 }
