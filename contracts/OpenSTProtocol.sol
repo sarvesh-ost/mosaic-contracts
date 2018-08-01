@@ -4,6 +4,9 @@ import "./CoGateway.sol";
 import "./EIP20Interface.sol";
 import "./HasherLib.sol";
 import "./UtilityTokenInterface.sol";
+import "./CoreInterface.sol";
+import "./ProofLib.sol";
+import "./MerklePatriciaProof.sol";
 
 library OpenSTProtocol {
 
@@ -13,11 +16,13 @@ library OpenSTProtocol {
         uint256 blocksToWaitShort;
         uint256 blocksToWaitLong;
         address stakeAddress; //simple stake or Branded Token stake //todo discuss if ost needs to transfer to simple stake
+        CoreInterface core;
         mapping(address => uint256) nonces;
         //request stakes and request redeem
         mapping(address /*converter */ => ConversionRequest) conversionRequests;
         //stakes and redeem
         mapping(bytes32 /*intentHash */ => Conversion) conversions;
+        mapping(bytes32 /*intentHash */ => ConversionConfirm) confirmConversions;
         mapping(bytes32 => bytes32) intents;
     }
 
@@ -36,6 +41,15 @@ library OpenSTProtocol {
         uint256 amount;
         uint256 unlockHeight;
         address beneficiary;
+        bytes32 hashLock;
+    }
+
+    struct ConversionConfirm {
+        bytes32 uuid;
+        address converter;
+        address beneficiary;
+        uint256 amount;
+        uint256 expirationHeight;
         bytes32 hashLock;
     }
 
@@ -148,8 +162,6 @@ library OpenSTProtocol {
         return (converter, amount);
     }
 
-
-
     function rejectConversion(){
 
     }
@@ -157,8 +169,40 @@ library OpenSTProtocol {
     function revertConversion(){
 
     }
+//todo -WIP
+    function confirmConversionIntent(
+        ProtocolStorage storage _protocolStorage,
+        bytes32 _uuid,
+        address _converter,
+        uint256 _converterNonce,
+        address _beneficiary,
+        uint256 _amount,
+        uint256 _stakingUnlockHeight,
+        bytes32 _hashLock,
+        uint256 _blockHeight,
+        bytes _rlpParentNodes)
+    returns (uint256 expirationHeight){
 
-    function confirmConversionIntent(){
+        expirationHeight = block.number + _protocolStorage.blocksToWaitShort;
+        _protocolStorage.nonces[_converter] = _converterNonce;
+        bytes32 intentHash = HasherLib.hashConversionIntent(
+            _uuid,
+            _converter,
+            _converterNonce,
+            _beneficiary,
+            _amount,
+            _stakingUnlockHeight,
+            _hashLock
+        );
+        require(verifyIntent(
+                _converter,
+                _converterNonce,
+                intentHash,
+                _rlpParentNodes,
+                core.getStorageRoot(_blockHeight)));
+
+
+
 
     }
 
@@ -168,6 +212,28 @@ library OpenSTProtocol {
 
     function unstake(){
 
+    }
+
+    function verifyIntent(
+        address _converter,
+        uint256 _converterNonce,
+        bytes32 intentHash,
+        bytes rlpParentNodes,
+        bytes32 storageRoot)
+    private
+    pure
+    returns (bool /* MerkleProofStatus*/)
+    {
+        bytes memory encodedPathInMerkle = ProofLib.bytes32ToBytes(
+            ProofLib.storageVariablePath(
+                intentsMappingStorageIndexPosition,
+                keccak256(abi.encodePacked(_converter, _converterNonce))));
+
+        return MerklePatriciaProof.verify(
+            keccak256(abi.encodePacked(intentHash)),
+            encodedPathInMerkle,
+            rlpParentNodes,
+            storageRoot);
     }
 
 

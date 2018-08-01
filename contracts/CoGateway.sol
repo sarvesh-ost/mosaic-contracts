@@ -143,4 +143,64 @@ contract CoGateway is ProtocolVersioned, Owned {
         return (redeemer, amount);
     }
 
+    function confirmStakingIntent(
+        bytes32 _uuid,
+        address _staker,
+        uint256 _stakerNonce,
+        address _beneficiary,
+        uint256 _amount,
+        uint256 _stakingUnlockHeight,
+        bytes32 _hashLock,
+        uint256 _blockHeight,
+        bytes _rlpParentNodes)
+    external
+    returns (uint256 expirationHeight)
+    {
+        require(_uuid == uuid );
+
+        require(protocolStorage.nonces[_staker] < _stakerNonce);
+        require(_amount > 0);
+
+        // stakingUnlockheight needs to be checked against the core that tracks the value chain
+        require(_stakingUnlockHeight > 0);
+
+        require(protocolStorage.core.safeUnlockHeight() < _stakingUnlockHeight);
+
+        expirationHeight = block.number + blocksToWaitShort;
+        nonces[_staker] = _stakerNonce;
+
+        bytes32 stakingIntentHash = hashStakingIntent(
+            _uuid,
+            _staker,
+            _stakerNonce,
+            _beneficiary,
+            _amountST,
+            _amountUT,
+            _stakingUnlockHeight,
+            _hashLock
+        );
+        require(merkleVerificationOfStake(
+                _staker,
+                _stakerNonce,
+                stakingIntentHash,
+                _rlpParentNodes,
+                core.getStorageRoot(_blockHeight)));
+
+        mints[stakingIntentHash] = Mint({
+            uuid:             _uuid,
+            staker:           _staker,
+            beneficiary:      _beneficiary,
+            amount:           _amountUT,
+            expirationHeight: expirationHeight,
+            hashLock:         _hashLock
+            });
+
+        emit StakingIntentConfirmed(_uuid, stakingIntentHash, _staker, _beneficiary, _amountST,
+            _amountUT, expirationHeight, _blockHeight ,core.getStorageRoot(_blockHeight));
+
+        return expirationHeight;
+    }
+
+
+
 }
