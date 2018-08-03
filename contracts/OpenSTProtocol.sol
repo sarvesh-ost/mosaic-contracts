@@ -10,231 +10,93 @@ import "./MerklePatriciaProof.sol";
 
 library OpenSTProtocol {
 
-
-    //Todo Staker, redeemer, SimpleStake, BrandedToken address should be in this storage?
     struct ProtocolStorage {
         uint256 blocksToWaitShort;
         uint256 blocksToWaitLong;
-        address stakeAddress; //simple stake or Branded Token stake //todo discuss if ost needs to transfer to simple stake
         CoreInterface core;
-        mapping(address => uint256) nonces;
-        //request stakes and request redeem
-        mapping(address /*converter */ => ConversionRequest) conversionRequests;
-        //stakes and redeem
-        mapping(bytes32 /*intentHash */ => Conversion) conversions;
-        mapping(bytes32 /*intentHash */ => ConversionConfirm) confirmConversions;
-        mapping(bytes32 => bytes32) intents;
+
+        mapping(address /*requestHah */ => Request) requests;
+        mapping(bytes32 /*intentDeclaredHash */ => IntentDeclared) intents;
+        mapping(bytes32 /*intentconfirmedHash */ => IntentConfirmed) confirms;
     }
 
-    struct Conversion {
-        bytes32 uuid;
-        address converter;
-        address beneficiary;
+
+    struct Request {
+        address requester;
         uint256 nonce;
-        uint256 amount;
-        uint256 unlockHeight;
+    }
+
+    struct IntentDeclared {
+        bytes32 requestHash;
         bytes32 hashLock;
     }
 
-
-    struct ConversionRequest {
-        uint256 amount;
-        uint256 unlockHeight;
-        address beneficiary;
-        bytes32 hashLock;
+    struct IntentConfirmed {
+        bytes32 intentDeclaredHash;
+        bytes32 unlockSecret;
     }
 
-    struct ConversionConfirm {
-        bytes32 uuid;
-        address converter;
-        address beneficiary;
-        uint256 amount;
-        uint256 expirationHeight;
-        bytes32 hashLock;
-    }
 
-    /* accept stake or accept redeem*/
-    function requestConversion(
+    function request(
         ProtocolStorage storage _protocolStorage,
-        address _brandedToken,
         uint256 _amount,
-        address _beneficiary)
-    internal
-    returns (bool /* success*/){
-
-        //todo  duplicate
-        //require(EIP20Interface(_brandedToken).transferFrom(msg.sender, address(this), _amount));
-
-        _protocolStorage.conversionRequests[msg.sender] = ConversionRequest({
-            amount : _amount,
-            beneficiary : _beneficiary,
-            hashLock : 0,
-            unlockHeight : 0
-            });
-        return true;
-    }
-
-    function acceptConversion(
-        ProtocolStorage storage _protocolStorage,
-        bytes32 uuid,
-        address _brandedToken,
-        uint256 _bounty,
-        address _converter
-    )
-    returns (uint256, uint256, uint256, bytes32, bytes32)
+        uint256 _nonce)
+        internal
+        returns (bytes32 requestHash_)
     {
-        ConversionRequest storage conversionRequest = _protocolStorage.conversionRequests[_converter];
+        requestHash_ = keccak256(abi.encodePacked(msg.sender, _amount, _nonce));
+        Request obj = _protocolStorage.requests[requestHash_];
 
-        require(EIP20Interface(_brandedToken).transferFrom(msg.sender, address(this), _bounty));
-        return conversionIntent(_protocolStorage, _brandedToken, uuid, conversionRequest.amount, conversionRequest.beneficiary, conversionRequest.hashLock, _converter);
-    }
+        require(obj.requester != address(0));
 
-    //stake and redeem
-    function conversionIntent(
-        ProtocolStorage storage _protocolStorage,
-        address _brandedToken,
-        bytes32 _uuid,
-        uint256 _amount,
-        address _beneficiary,
-        bytes32 _hashLock,
-        address _converter
-    )
-    returns (uint256, uint256 nonce, uint256 unlockHeight, bytes32 intentHash, bytes32 intentKeyHash){
-
-
-        require(EIP20Interface(_brandedToken).transferFrom(_converter, address(this), _amount));
-        unlockHeight = block.number + _protocolStorage.blocksToWaitLong;
-
-        _protocolStorage.nonces[_converter]++;
-        nonce = _protocolStorage.nonces[_converter];
-
-        intentHash = HasherLib.hashConversionIntent(
-            _uuid,
-            _converter,
-            nonce,
-            _beneficiary,
-            _amount,
-            unlockHeight,
-            _hashLock
-        );
-
-        _protocolStorage.conversions[intentHash] = Conversion({
-            uuid : _uuid,
-            converter : _converter,
-            beneficiary : _beneficiary,
-            nonce : nonce,
-            amount : _amount,
-            unlockHeight : unlockHeight,
-            hashLock : _hashLock
+        _protocolStorage.requests[requestHash_] = Request({
+            requester: msg.sender,
+            nonce: _nonce
             });
-
-        // store the staking intent hash directly in storage of OpenSTValue
-        // so that a Merkle proof can be generated for active staking intents
-        intentKeyHash = HasherLib.hashIntentKey(_converter, nonce);
-        _protocolStorage.intents[intentKeyHash] = intentHash;
-
-        return (_amount, nonce, unlockHeight, intentHash, intentKeyHash);
     }
 
-    function processConversion(
+    function declareIntent(
         ProtocolStorage storage _protocolStorage,
-        address _brandedToken,
-        bytes32 _conversionIntent,
-        bytes32 _unlockSecret
-    )
-    returns (
-        address converter,
-        uint256 amount
-    ){
-        Conversion storage conversion = _protocolStorage.conversions[_conversionIntent];
-        require(conversion.hashLock == keccak256(abi.encodePacked(_unlockSecret)));
-        //Todo check if staker address is defined then it can only process
-
-        require(EIP20Interface(_brandedToken).transfer(_protocolStorage.stakeAddress, conversion.amount));
-         //Todo Stake and mint has different implementation
-        converter = conversion.converter;
-        amount = conversion.amount;
-        require(UtilityTokenInterface(_brandedToken).burn(converter, amount));
-
-
-        delete _protocolStorage.intents[HasherLib.hashIntentKey(conversion.converter, conversion.nonce)];
-        delete _protocolStorage.conversions[_conversionIntent];
-        return (converter, amount);
-    }
-
-    function rejectConversion(){
-
-    }
-
-    function revertConversion(){
-
-    }
-//todo -WIP
-    function confirmConversionIntent(
-        ProtocolStorage storage _protocolStorage,
-        bytes32 _uuid,
-        address _converter,
-        uint256 _converterNonce,
-        address _beneficiary,
-        uint256 _amount,
-        uint256 _stakingUnlockHeight,
-        bytes32 _hashLock,
-        uint256 _blockHeight,
-        bytes _rlpParentNodes)
-    returns (uint256 expirationHeight){
-
-        expirationHeight = block.number + _protocolStorage.blocksToWaitShort;
-        _protocolStorage.nonces[_converter] = _converterNonce;
-        bytes32 intentHash = HasherLib.hashConversionIntent(
-            _uuid,
-            _converter,
-            _converterNonce,
-            _beneficiary,
-            _amount,
-            _stakingUnlockHeight,
-            _hashLock
-        );
-        require(verifyIntent(
-                _converter,
-                _converterNonce,
-                intentHash,
-                _rlpParentNodes,
-                core.getStorageRoot(_blockHeight)));
-
-
-
-
-    }
-
-    function mint(){
-
-    }
-
-    function unstake(){
-
-    }
-
-    function verifyIntent(
-        address _converter,
-        uint256 _converterNonce,
-        bytes32 intentHash,
-        bytes rlpParentNodes,
-        bytes32 storageRoot)
-    private
-    pure
-    returns (bool /* MerkleProofStatus*/)
+        bytes32 _requestHash,
+        bytes32 _hashLock)
+        internal
+        returns (bytes32 intentDeclaredHash_)
     {
-        bytes memory encodedPathInMerkle = ProofLib.bytes32ToBytes(
-            ProofLib.storageVariablePath(
-                intentsMappingStorageIndexPosition,
-                keccak256(abi.encodePacked(_converter, _converterNonce))));
+        // check if the request obj exists
+        Request requestObj = _protocolStorage.requests[_requestHash];
+        require(requestObj.requester != address(0));
 
-        return MerklePatriciaProof.verify(
-            keccak256(abi.encodePacked(intentHash)),
-            encodedPathInMerkle,
-            rlpParentNodes,
-            storageRoot);
+        // check if intent is not already declared
+        intentDeclaredHash_ = keccak256(abi.encodePacked(_requestHash, _hashLock));
+        IntentDeclared intentObj = _protocolStorage.intents[intentDeclaredHash_];
+        require(intentObj.requestHash == bytes32(0));
+
+        _protocolStorage.intents[intentDeclaredHash_] = IntentDeclared({
+            requestHash: _requestHash,
+            hashLock: _hashLock
+            });
     }
 
 
+    function confirmIntent(
+        ProtocolStorage storage _protocolStorage,
+        bytes32 _intentDeclaredHash,
+        bytes32 _unlockSecret)
+        internal
+        returns (bytes32 intentConfirmHash_)
+    {
+        // check if the intent is declared
+        IntentDeclared intentObj = _protocolStorage.intents[_intentDeclaredHash];
+        require(intentObj.requestHash != address(0));
+
+        // check if intent is not confirmed
+        intentConfirmHash_ = keccak256(abi.encodePacked(_intentDeclaredHash, _unlockSecret));
+        IntentConfirmed intentConfirmObj = _protocolStorage.confirms[intentConfirmHash_];
+        require(intentConfirmObj.intentDeclaredHash == bytes32(0));
+
+        _protocolStorage.confirms[intentConfirmHash_] = IntentConfirmed({
+            intentDeclaredHash: _intentDeclaredHash,
+            unlockSecret: _unlockSecret
+            });
+    }
 }
