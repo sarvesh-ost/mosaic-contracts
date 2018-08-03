@@ -1,23 +1,12 @@
 pragma solidity ^0.4.23;
 
-import "./CoGateway.sol";
-import "./EIP20Interface.sol";
-import "./HasherLib.sol";
-import "./UtilityTokenInterface.sol";
-import "./CoreInterface.sol";
-import "./ProofLib.sol";
 import "./MerklePatriciaProof.sol";
 
 library OpenSTProtocol {
 
     struct ProtocolStorage {
-        uint256 blocksToWaitShort;
-        uint256 blocksToWaitLong;
-        CoreInterface core;
-
-        mapping(address /*requestHah */ => Request) requests;
+        mapping(address /*requestHash */ => Request) requests;
         mapping(bytes32 /*intentDeclaredHash */ => IntentDeclared) intents;
-        mapping(bytes32 /*intentconfirmedHash */ => IntentConfirmed) confirms;
     }
 
 
@@ -33,18 +22,17 @@ library OpenSTProtocol {
 
     struct IntentConfirmed {
         bytes32 intentDeclaredHash;
-        bytes32 unlockSecret;
+        bytes32 hashLock;
     }
 
 
     function request(
         ProtocolStorage storage _protocolStorage,
-        uint256 _amount,
         uint256 _nonce)
         internal
         returns (bytes32 requestHash_)
     {
-        requestHash_ = keccak256(abi.encodePacked(msg.sender, _amount, _nonce));
+        requestHash_ = keccak256(abi.encodePacked(msg.sender, _nonce));
         Request obj = _protocolStorage.requests[requestHash_];
 
         require(obj.requester != address(0));
@@ -81,22 +69,30 @@ library OpenSTProtocol {
     function confirmIntent(
         ProtocolStorage storage _protocolStorage,
         bytes32 _intentDeclaredHash,
-        bytes32 _unlockSecret)
+        bytes32 storageRoot,
+        bytes32 path,
+        bytes rlpParentNodes)
         internal
         returns (bytes32 intentConfirmHash_)
     {
+
         // check if the intent is declared
-        IntentDeclared intentObj = _protocolStorage.intents[_intentDeclaredHash];
-        require(intentObj.requestHash != address(0));
+        return MerklePatriciaProof.verify(keccak256(abi.encodePacked(_intentDeclaredHash)), path, rlpParentNodes, storageRoot);
 
-        // check if intent is not confirmed
-        intentConfirmHash_ = keccak256(abi.encodePacked(_intentDeclaredHash, _unlockSecret));
-        IntentConfirmed intentConfirmObj = _protocolStorage.confirms[intentConfirmHash_];
-        require(intentConfirmObj.intentDeclaredHash == bytes32(0));
+    }
 
-        _protocolStorage.confirms[intentConfirmHash_] = IntentConfirmed({
-            intentDeclaredHash: _intentDeclaredHash,
-            unlockSecret: _unlockSecret
-            });
+    function processIntent(
+        ProtocolStorage storage _protocolStorage,
+        bytes32 _intentDeclaredHash
+    )
+    internal
+    returns (bool /*success*/)
+    {
+        IntentDeclared intentDeclared = _protocolStorage.intents[_intentDeclaredHash];
+        bytes32 requestHash = intentDeclared.requestHash;
+        
+        delete _protocolStorage.requests[requestHash];
+        delete _protocolStorage.intents[_intentDeclaredHash];
+
     }
 }
