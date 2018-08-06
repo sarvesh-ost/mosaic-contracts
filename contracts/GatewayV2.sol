@@ -129,14 +129,18 @@ contract Gateway is ProtocolVersioned, Owned, Hasher {
         require(_beneficiary != address(0));
 
         uint256 nonce = nonces[msg.sender];
-        nonces[msg.sender] = nonces + 1;
+        nonces[msg.sender] = nonce + 1;
 
         bytes32 requestHash = OpenSTProtocol.request(protocolStorage, nonce);
         // check if the stake request does not exists
         require(stakeRequests[requestHash].beneficiary == address(0));
 
-        require(OpenSTValueInterface(openSTProtocol).valueToken().transferFrom(msg.sender, address(this), _amount));
+        require(EIP20Interface(brandedToken).transferFrom(msg.sender, address(this), _amount));
 
+        stakeRequests[requestHash] = StakeRequest({
+            amount : _amount,
+            beneficiary : _beneficiary
+            });
         emit StakeRequested(msg.sender, nonce, _amount, _beneficiary);
 
         return true;
@@ -157,12 +161,17 @@ contract Gateway is ProtocolVersioned, Owned, Hasher {
      *  @return unlockHeight Height till what the amount is locked.
      *  @return stakingIntentHash Staking intent hash.
      */
-    function acceptStakeRequest(address _staker, uint256 _nonce, bytes32 _hashLock)
+    function acceptStakeRequest(
+        address _staker,
+        uint256 _nonce,
+        bytes32 _hashLock
+    )
     external
     returns (
         uint256 amount,
         uint256 unlockHeight,
-        bytes32 stakingIntentHash)
+        bytes32 stakingIntentHash
+    )
     {
         // check if the caller is whitelisted worker
         require(workers.isWorker(msg.sender));
@@ -177,7 +186,7 @@ contract Gateway is ProtocolVersioned, Owned, Hasher {
         require(_hashLock != bytes32(0));
 
         // Transfer bounty amount from worker to Gateway contract
-        require(OpenSTValueInterface(openSTProtocol).valueToken().transferFrom(msg.sender, address(this), bounty));
+        require(EIP20Interface(brandedToken).transferFrom(msg.sender, address(this), bounty));
 
         (stakingIntentHash, unlockHeight) = OpenSTProtocol.declareIntent(protocolStorage, requestHash, _hashLock);
 
@@ -198,18 +207,16 @@ contract Gateway is ProtocolVersioned, Owned, Hasher {
      *
      *  @return stakeRequestAmount Stake amount.
      */
-    //todo how to verify if stake request is accepted
     function processStaking(
         bytes32 _stakingIntentHash,
-        bytes32 _unlockSecret)
+        bytes32 _unlockSecret
+    )
     external
     returns (uint256 stakeRequestAmount)
     {
         require(_stakingIntentHash != bytes32(0));
 
-        address staker;
-        bytes32 requestHash;
-        (staker, requestHash) = OpenSTProtocol.processIntent(protocolStorage, _stakingIntentHash, _unlockSecret);
+        (address staker, bytes32 requestHash) = OpenSTProtocol.processIntent(protocolStorage, _stakingIntentHash, _unlockSecret);
 
         StakeRequest stakeRequest = stakeRequests[requestHash];
         require(stakeRequest.amount != 0);
@@ -234,6 +241,41 @@ contract Gateway is ProtocolVersioned, Owned, Hasher {
 
         return stakeRequestAmount;
     }
+
+    /**
+     *  @notice External function to revert staking.
+     *
+     *  @dev Staked amount is transferred to the staker address.
+     *       Bounty amount is transferred to workers contract.
+     *
+     *  @param _stakingIntentHash Staking intent hash.
+     *
+     *  @return stakeRequestAmount Staking amount.
+     */
+    function revertStaking(bytes32 _stakingIntentHash)
+    external
+    returns (uint256 amount)
+    {
+        //todo WIP
+        require(_stakingIntentHash != bytes32(0));
+
+        (address staker, bytes32 requestHash) = OpenSTProtocol.revertStaking(protocolStorage, _stakingIntentHash);
+
+        StakeRequest storage stakeRequest = stakeRequests[requestHash];
+
+        // check if the stake request exists
+        require(stakeRequest.beneficiary != address(0));
+        amount = stakeRequest.amount;
+
+        require(EIP20Interface(brandedToken).transfer(staker, stakeRequest.amount));
+        require(EIP20Interface(brandedToken).transfer(workers, bounty));
+
+        // delete the stake request from the mapping storage
+        delete stakeRequests[requestHash];
+
+        return amount;
+    }
+
 
 
 }
