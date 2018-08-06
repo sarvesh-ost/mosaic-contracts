@@ -7,6 +7,7 @@ library OpenSTProtocol {
     struct ProtocolStorage {
         mapping(address /*requestHash */ => Request) requests;
         mapping(bytes32 /*intentDeclaredHash */ => IntentDeclared) intents;
+        mapping(bytes32 /*intentConfirm */ => IntentConfirmed) confirmations;
     }
 
 
@@ -69,30 +70,44 @@ library OpenSTProtocol {
     function confirmIntent(
         ProtocolStorage storage _protocolStorage,
         bytes32 _intentDeclaredHash,
-        bytes32 storageRoot,
-        bytes32 path,
-        bytes rlpParentNodes)
+        bytes32 _storageRoot,
+        bytes32 _path,
+        bytes _rlpParentNodes,
+        bytes32 _hackLock)
         internal
         returns (bytes32 intentConfirmHash_)
     {
-
         // check if the intent is declared
-        return MerklePatriciaProof.verify(keccak256(abi.encodePacked(_intentDeclaredHash)), path, rlpParentNodes, storageRoot);
+        require(MerklePatriciaProof.verify(keccak256(abi.encodePacked(_intentDeclaredHash)), _path, _rlpParentNodes, _storageRoot));
 
+        intentConfirmHash_ = keccak256(_intentDeclaredHash, _hackLock);
+
+        confirmations[_intentDeclaredHash] = IntentConfirmed({
+            intentDeclaredHash : _intentDeclaredHash,
+            hashLock : _hackLock
+            });
+        return intentConfirmHash_;
     }
 
     function processIntent(
         ProtocolStorage storage _protocolStorage,
-        bytes32 _intentDeclaredHash
+        bytes32 _intentDeclaredHash,
+        bytes32 _unlockSecret
     )
     internal
-    returns (bool /*success*/)
+    returns (address requester, bytes32 requestHash)
     {
         IntentDeclared intentDeclared = _protocolStorage.intents[_intentDeclaredHash];
-        bytes32 requestHash = intentDeclared.requestHash;
-        
+        requestHash = intentDeclared.requestHash;
+
+        require(requestHash != bytes(0));
+        require(intentDeclared.hashLock != bytes(0));
+
+        require(intentDeclared.hashLock == keccak256(abi.encodePacked(_unlockSecret)));
+
+        requester = _protocolStorage.requests[requestHash].requester;
+
         delete _protocolStorage.requests[requestHash];
         delete _protocolStorage.intents[_intentDeclaredHash];
-
     }
 }
