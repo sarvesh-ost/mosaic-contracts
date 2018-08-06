@@ -5,7 +5,8 @@ import "./MerklePatriciaProof.sol";
 library OpenSTProtocol {
 
     struct ProtocolStorage {
-        mapping(address /*requestHash */ => Request) requests;
+        uint256 blocksToWaitLong;
+        mapping(bytes32 /*requestHash */ => Request) requests;
         mapping(bytes32 /*intentDeclaredHash */ => IntentDeclared) intents;
         mapping(bytes32 /*intentConfirm */ => IntentConfirmed) confirmations;
     }
@@ -19,6 +20,7 @@ library OpenSTProtocol {
     struct IntentDeclared {
         bytes32 requestHash;
         bytes32 hashLock;
+        uint256 unlockHeight;
     }
 
     struct IntentConfirmed {
@@ -49,7 +51,7 @@ library OpenSTProtocol {
         bytes32 _requestHash,
         bytes32 _hashLock)
         internal
-        returns (bytes32 intentDeclaredHash_)
+    returns (bytes32 intentDeclaredHash_, uint256 unlockHeight)
     {
         // check if the request obj exists
         Request requestObj = _protocolStorage.requests[_requestHash];
@@ -60,9 +62,12 @@ library OpenSTProtocol {
         IntentDeclared intentObj = _protocolStorage.intents[intentDeclaredHash_];
         require(intentObj.requestHash == bytes32(0));
 
+        unlockHeight = block.number + _protocolStorage.blocksToWaitLong;
+
         _protocolStorage.intents[intentDeclaredHash_] = IntentDeclared({
             requestHash: _requestHash,
-            hashLock: _hashLock
+            hashLock : _hashLock,
+            unlockHeight : unlockHeight
             });
     }
 
@@ -71,22 +76,22 @@ library OpenSTProtocol {
         ProtocolStorage storage _protocolStorage,
         bytes32 _intentDeclaredHash,
         bytes32 _storageRoot,
-        bytes32 _path,
+        bytes _path,
         bytes _rlpParentNodes,
         bytes32 _hackLock)
         internal
-        returns (bytes32 intentConfirmHash_)
+    returns (bytes32 intentConfirmHash_)
     {
         // check if the intent is declared
         require(MerklePatriciaProof.verify(keccak256(abi.encodePacked(_intentDeclaredHash)), _path, _rlpParentNodes, _storageRoot));
 
         intentConfirmHash_ = keccak256(_intentDeclaredHash, _hackLock);
 
-        confirmations[_intentDeclaredHash] = IntentConfirmed({
+
+        _protocolStorage.confirmations[_intentDeclaredHash] = IntentConfirmed({
             intentDeclaredHash : _intentDeclaredHash,
             hashLock : _hackLock
             });
-        return intentConfirmHash_;
     }
 
     function processIntent(
@@ -100,8 +105,8 @@ library OpenSTProtocol {
         IntentDeclared intentDeclared = _protocolStorage.intents[_intentDeclaredHash];
         requestHash = intentDeclared.requestHash;
 
-        require(requestHash != bytes(0));
-        require(intentDeclared.hashLock != bytes(0));
+        require(requestHash != bytes32(0));
+        require(intentDeclared.hashLock != bytes32(0));
 
         require(intentDeclared.hashLock == keccak256(abi.encodePacked(_unlockSecret)));
 

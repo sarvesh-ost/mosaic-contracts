@@ -5,6 +5,7 @@ import "./Owned.sol";
 import "./OpenSTProtocol.sol";
 import "./WorkersInterface.sol";
 
+/*
 contract CoGateway is ProtocolVersioned, Owned {
 
     event RedeemRequested(address _staker, uint256 _amount, address _beneficiary);
@@ -50,7 +51,9 @@ contract CoGateway is ProtocolVersioned, Owned {
         uint256 _amount,
         address _beneficiary)
     external
-    returns (bool /* success */)
+    returns (bool */
+/* success *//*
+)
     {
 
         require(_amount > uint256(0));
@@ -204,3 +207,4 @@ contract CoGateway is ProtocolVersioned, Owned {
 
 
 }
+*/

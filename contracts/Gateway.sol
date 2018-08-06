@@ -1,3 +1,4 @@
+/*
 pragma solidity ^0.4.23;
 
 import "./ProtocolVersioned.sol";
@@ -40,7 +41,9 @@ contract Gateway is ProtocolVersioned, Owned {
 
 
     address core;
-    /** Structures */
+    */
+/** Structures *//*
+
 
     struct CoGateway {
         address coGateway;
@@ -55,7 +58,9 @@ contract Gateway is ProtocolVersioned, Owned {
         uint256 _amount,
         address _beneficiary)
     external
-    returns (bool /* success */)
+    returns (bool */
+/* success *//*
+)
     {
         require(_amount > uint256(0));
         require(_beneficiary != address(0));
@@ -183,3 +188,4 @@ contract Gateway is ProtocolVersioned, Owned {
     }
 
 }
+*/
