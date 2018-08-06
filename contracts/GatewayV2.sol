@@ -61,6 +61,7 @@ contract Gateway is ProtocolVersioned, Owned, Hasher {
 
     /** Storing stake requests */
     mapping(bytes32 /*requestHash */ => StakeRequest) public stakeRequests;
+    mapping(address/*staker*/ => uint256) public nonces;
     /** Storing workers contract address */
     WorkersInterface public workers;
     /** Storing bounty amount that will be used while accepting stake */
@@ -119,7 +120,6 @@ contract Gateway is ProtocolVersioned, Owned, Hasher {
      */
     function requestStake(
         uint256 _amount,
-        uint256 _nonce,
         address _beneficiary
     )
     external
@@ -127,13 +127,17 @@ contract Gateway is ProtocolVersioned, Owned, Hasher {
     {
         require(_amount > uint256(0));
         require(_beneficiary != address(0));
-        bytes32 requestHash = OpenSTProtocol.request(protocolStorage, _nonce);
+
+        uint256 nonce = nonces[msg.sender];
+        nonces[msg.sender] = nonces + 1;
+
+        bytes32 requestHash = OpenSTProtocol.request(protocolStorage, nonce);
         // check if the stake request does not exists
         require(stakeRequests[requestHash].beneficiary == address(0));
 
         require(OpenSTValueInterface(openSTProtocol).valueToken().transferFrom(msg.sender, address(this), _amount));
 
-        emit StakeRequested(msg.sender, _nonce, _amount, _beneficiary);
+        emit StakeRequested(msg.sender, nonce, _amount, _beneficiary);
 
         return true;
     }
