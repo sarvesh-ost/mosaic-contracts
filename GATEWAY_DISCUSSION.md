@@ -1,7 +1,5 @@
-- Revert flow
-- ConfirmIntent flow
 
-
+Following are the 4 approaches that implements openST-Gateway state machine 
 
 
 ***Option 1:***
@@ -23,21 +21,24 @@
     struct IntentDeclared {
         bytes32 proposedHash; //sha3(requester,nonce)
         bytes32 hashLock;
+        uint256 unlockHeight;
     }
 
     struct IntentConfirmed {
         bytes32 intentHash;
         bytes32 hashLock;
+        uint256 unlockHeight;
     }
 ```
 **Pros:**
 	
 - All states are linked, easy to determine the states	
-- revertRequest is possible
+- RevertRequest is possible
 	
 **Cons:**
     
-- 
+- More hashing computation 
+- More storage
 
 ***Option 2:***
 ```
@@ -54,17 +55,18 @@
 
     struct Intent{
         bytes32 hashLock;
+        uint256 unlockHeight;
     }
 
 ```
 
 **Pros:**
-- all states are linked, easy to determine the states
-- single address can do multiple requests.
-- less hashing
+- All states are linked, easy to determine the states
+- Single address can do multiple requests.
+- Less hashing
 
 **Cons:**
--  no feel good
+-  No feel good (feels very disconnected)
 	
 
 ***Option 3:***
@@ -86,21 +88,24 @@
     struct IntentDeclared {
         bytes32 requestHash;
         bytes32 hashLock;
+        uint256 unlockHeight;
     }
 
     struct IntentConfirmed {
         bytes32 intentDeclaredHash;
         bytes32 hashLock;
+        uint256 unlockHeight;
     }
 ```    
 **Pros:**
 
-- all states are linked, easy to determine the states
-- single address can do multiple requests.
+- All states are linked, easy to determine the states
+- Single address can do multiple requests.
 
 **Cons:**    
 
-- extra storage is used
+- More hashing computation 
+- More storage
 
 ***Option 4:***
 ```
@@ -118,6 +123,7 @@ struct ProtocolStorage {
         address requester;
         uint256 nonce;
         bytes32 data;
+        uint256 unlockHeight;
         bytes32 hashLock;
         State state;
     }
@@ -127,6 +133,8 @@ struct ProtocolStorage {
 
 - All states are linked, easy to determine the states
 - Single address can do multiple requests.
+- less hashing computation.
+- More explicit state status (Enum)
 
 **Cons:**    
 - IntentDeclared and intentConfirmed can be messed up (Can be solved by having chainId.)
