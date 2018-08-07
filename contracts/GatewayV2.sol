@@ -222,9 +222,6 @@ contract Gateway is ProtocolVersioned, Owned, Hasher {
         StakeRequest stakeRequest = stakeRequests[requestHash];
         require(stakeRequest.amount != 0);
 
-        // check if the stake address is not 0
-        require(stakeAddress != address(0));
-
         require(EIP20Interface(brandedToken).transfer(stakeAddress, stakeRequest.amount));
 
         //If the msg.sender is whitelited worker then transfer the bounty amount to Workers contract
