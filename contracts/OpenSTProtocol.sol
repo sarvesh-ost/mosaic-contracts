@@ -88,12 +88,15 @@ library OpenSTProtocol {
         Request requestObj = _protocolStorage.requests[_requestHash];
         require(requestObj.requester != address(0));
 
+        require(requestObj.intentHash == bytes32(0));
+
+        unlockHeight = block.number + _protocolStorage.blocksToWaitLong;
+
         // check if intent is not already declared
-        intentDeclaredHash_ = keccak256(abi.encodePacked(_requestHash, _hashLock));
+        intentDeclaredHash_ = keccak256(abi.encodePacked(_requestHash, _hashLock, unlockHeight));
         IntentDeclared intentObj = _protocolStorage.intents[intentDeclaredHash_];
         require(intentObj.requestHash == bytes32(0));
 
-        unlockHeight = block.number + _protocolStorage.blocksToWaitLong;
 
         _protocolStorage.intents[intentDeclaredHash_] = IntentDeclared({
             requestHash: _requestHash,
