@@ -151,7 +151,7 @@ library OpenSTProtocol {
         requestHash = _protocolStorage.intents[_intentDeclaredHash].requestHash;
 
         require(_protocolStorage.intents[_intentDeclaredHash].hashLock == bytes32(0));
-        require(_protocolStorage.requests[requestHash].requester == bytes32(0));
+        require(_protocolStorage.requests[requestHash].requester == address(0));
 
         requester = _protocolStorage.requests[requestHash].requester;
 
