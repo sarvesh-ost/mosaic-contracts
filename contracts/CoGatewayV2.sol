@@ -23,9 +23,9 @@ contract CoGateway is ProtocolVersioned, Owned {
 
 
     OpenSTProtocol.ProtocolStorage protocolStorage;
-    CoreInterface core;
-    uint256 intentsMappingStorageIndexPosition = 4;
-    bytes uuid;
+    CoreInterface private core;
+    uint8 private constant intentsMappingStorageIndexPosition = 4;
+    bytes32 uuid;
 
     struct RedeemRequest {
         uint256 amount;
@@ -82,7 +82,7 @@ contract CoGateway is ProtocolVersioned, Owned {
         bytes32 requestHash = keccak256(abi.encodePacked(_staker, _stakerNonce, data));
         bytes32 stakingIntentHash = keccak256(abi.encodePacked(requestHash, _unlockHeight, _hashLock));
 
-        bytes32 path = ProofLib.bytes32ToBytes(
+        bytes memory path = ProofLib.bytes32ToBytes(
             ProofLib.storageVariablePath(intentsMappingStorageIndexPosition,
             keccak256(abi.encodePacked(_staker, _stakerNonce)))
         );

@@ -80,23 +80,25 @@ library OpenSTProtocol {
     function confirmIntent(
         ProtocolStorage storage _protocolStorage,
         bytes32 _intentDeclaredHash,
+        bytes32 _hashLock,
         bytes32 _storageRoot,
+        uint256 _blockHeight,
         bytes _path,
-        bytes _rlpParentNodes,
-        bytes32 _hackLock)
+        bytes _rlpParentNodes
+        )
         internal
     returns (bytes32 intentConfirmHash_, uint256 expirationHeight_)
     {
         // check if the intent is declared
         require(MerklePatriciaProof.verify(keccak256(abi.encodePacked(_intentDeclaredHash)), _path, _rlpParentNodes, _storageRoot));
 
-        intentConfirmHash_ = keccak256(_intentDeclaredHash, _hackLock);
+        intentConfirmHash_ = keccak256(_intentDeclaredHash, _hashLock);
 
         expirationHeight_ = block.number + _protocolStorage.blocksToWaitShort;
 
         _protocolStorage.confirmations[_intentDeclaredHash] = IntentConfirmed({
             intentDeclaredHash : _intentDeclaredHash,
-            hashLock : _hackLock,
+            hashLock : _hashLock,
             expirationHeight : expirationHeight_
             });
     }
