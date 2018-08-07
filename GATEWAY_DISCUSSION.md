@@ -33,7 +33,7 @@ Following are the 4 approaches that implements openST-Gateway state machine
 **Pros:**
 	
 - All states are linked, easy to determine the states	
-- RevertRequest is possible
+- Multiple requests is possible for a address
 	
 **Cons:**
     
