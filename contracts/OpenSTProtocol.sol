@@ -46,8 +46,8 @@ library OpenSTProtocol {
 
         _protocolStorage.requests[requestHash_] = Request({
             requester: msg.sender,
-            nonce: _nonce
-            data :
+            nonce: _nonce,
+            data : data
             });
     }
 
