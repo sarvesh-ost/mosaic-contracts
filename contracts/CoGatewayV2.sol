@@ -12,6 +12,7 @@ import "./EIP20Interface.sol";
 contract CoGateway is ProtocolVersioned, Owned {
 
     event RedeemRequested(address _redeemer, uint256 _amount, address _beneficiary, uint256 _nonce, bytes32 _requestHash);
+    event ProcessedRedemption(bytes32 indexed _uuid, bytes32 indexed _redemptionIntentHash, address _redeemer, address _beneficiary, uint256 _amount, bytes32 _unlockSecret);
     event StakingIntentConfirmed(bytes32 _uuid, bytes32 _intentConfirmedHash_, address _staker, address _beneficiary, uint256 _amount, uint256 _expirationHeight,
         uint256 _blockHeight, bytes32 _storageRoot);
 
@@ -30,6 +31,8 @@ contract CoGateway is ProtocolVersioned, Owned {
     uint256 public bounty;
 
     WorkersInterface public workers;
+
+    address escrow;
 
     OpenSTProtocol.ProtocolStorage protocolStorage;
     CoreInterface private core;
@@ -145,6 +148,40 @@ contract CoGateway is ProtocolVersioned, Owned {
         (intentConfirmedHash_, expirationHeight_ ) = OpenSTProtocol.confirmIntent(protocolStorage, stakingIntentHash, _hashLock, storageRoot, _blockHeight, path, _rlpParentNodes);
 
         emit StakingIntentConfirmed(uuid, intentConfirmedHash_, _staker, _beneficiary, _amount, expirationHeight_, _blockHeight, storageRoot);
+
+    }
+
+    function processRedeem(
+        bytes32 _redemptionIntentHash,
+        bytes32 _unlockSecret)
+        external
+        returns (address redeemer_, uint256 redeemAmount_, address beneficiary_)
+    {
+        require(_redemptionIntentHash != bytes32(0));
+        bytes32 requestHash;
+
+        (redeemer_, requestHash) = OpenSTProtocol.processIntentDeclaration(protocolStorage, _redemptionIntentHash, _unlockSecret);
+
+        RedeemRequest redeemRequest = redeemRequests[requestHash];
+        require(redeemRequest.beneficiary != address(0));
+
+        require(utilityToken.transfer(escrow, redeemRequest.amount));
+
+        //If the msg.sender is whitelited worker then transfer the bounty amount to Workers contract
+        //else transfer the bounty to msg.sender.
+        if (workers.isWorker(msg.sender)) {
+            // Transfer bounty amount to the workers contract address
+            require(utilityToken.transfer(workers, bounty));
+        } else {
+            //Transfer bounty amount to the msg.sender account
+            require(utilityToken.transfer(msg.sender, bounty));
+        }
+        redeemAmount_ = redeemRequest.amount;
+        beneficiary_ = redeemRequest.beneficiary;
+        // delete the stake request from the mapping storage
+        delete redeemRequests[requestHash];
+
+        emit ProcessedRedemption(uuid, _redemptionIntentHash, redeemer_, beneficiary_, redeemAmount_, _unlockSecret);
 
     }
 }

@@ -139,18 +139,18 @@ library OpenSTProtocol {
         bytes32 _unlockSecret
     )
     internal
-    returns (bytes32 requestHash)
+    returns (address requester_, bytes32 requestHash_)
     {
         //todo check height
         IntentDeclared intentDeclared = _protocolStorage.intents[_intentHash];
-        requestHash = intentDeclared.requestHash;
-
-        require(requestHash != bytes32(0));
+        requestHash_ = intentDeclared.requestHash;
+        requester_ = _protocolStorage.requests[requestHash_].requester;
+        require(requestHash_ != bytes32(0));
         require(intentDeclared.hashLock != bytes32(0));
 
         require(intentDeclared.hashLock == keccak256(abi.encodePacked(_unlockSecret)));
 
-        delete _protocolStorage.requests[requestHash];
+        delete _protocolStorage.requests[requestHash_];
         delete _protocolStorage.intents[_intentHash];
     }
 
