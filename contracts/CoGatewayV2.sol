@@ -5,18 +5,27 @@ import "./Owned.sol";
 import "./OpenSTProtocol.sol";
 import "./WorkersInterface.sol";
 import "./UtilityTokenInterface.sol";
+import "./CoreInterface.sol";
+import "./ProofLib.sol";
+import "./EIP20Interface.sol";
 
 contract CoGateway is ProtocolVersioned, Owned {
 
     event RedeemRequested(address _redeemer, uint256 _amount, address _beneficiary, uint256 _nonce, bytes32 _requestHash);
+    event StakingIntentConfirmed(bytes32 _uuid, bytes32 _intentConfirmedHash_, address _staker, address _beneficiary, uint256 _amount, uint256 _expirationHeight,
+        uint256 _blockHeight, bytes32 _storageRoot);
 
     mapping(bytes32 /*requestHash */ => RedeemRequest) public redeemRequests;
 
     mapping(address /*account */ => uint256) public nonces;
 
-    UtilityTokenInterface public utilityToken;
+    EIP20Interface public utilityToken;
+
 
     OpenSTProtocol.ProtocolStorage protocolStorage;
+    CoreInterface core;
+    uint256 intentsMappingStorageIndexPosition = 4;
+    bytes uuid;
 
     struct RedeemRequest {
         uint256 amount;
@@ -37,40 +46,20 @@ contract CoGateway is ProtocolVersioned, Owned {
         require(_beneficiary != address(0));
 
         nonce_ = nonces[msg.sender]++;
-        requestHash_ = OpenSTProtocol.request(protocolStorage, nonce);
+        requestHash_ = OpenSTProtocol.request(protocolStorage, nonce_);
         // check if the redeem request does not exists
-        require(redeemRequests[requestHash].beneficiary == address(0));
+        require(redeemRequests[requestHash_].beneficiary == address(0));
 
         require(utilityToken.transferFrom(msg.sender, address(this), _amount));
 
-        redeemRequests[requestHash] = RedeemRequest({
+        redeemRequests[requestHash_] = RedeemRequest({
             amount: _amount,
             beneficiary: _beneficiary});
 
-        emit RedeemRequested(msg.sender, _amount, _beneficiary, _nonce, requestHash);
+        emit RedeemRequested(msg.sender, _amount, _beneficiary, nonce_, requestHash_);
 
     }
 
-
-    function revertRedeemRequest(bytes32 _requestHash) external returns (uint256 redeemRequestAmount_) {
-
-        RedeemRequest storage redeemRequest = redeemRequests[msg.sender];
-
-        // check if the stake request exists for the msg.sender
-        require(stakeRequest.beneficiary != address(0));
-
-        // check if the stake request was not accepted
-        require(stakeRequest.hashLock == bytes32(0));
-
-        require(OpenSTValueInterface(openSTProtocol).valueToken().transfer(msg.sender, stakeRequest.amount));
-
-        stakeRequestAmount = stakeRequest.amount;
-        delete stakeRequests[msg.sender];
-
-        emit StakeRequestReverted(msg.sender, stakeRequestAmount);
-
-        return stakeRequestAmount;
-    }
 
     function confirmStakingIntent(
         //bytes32 _uuid,
@@ -83,15 +72,24 @@ contract CoGateway is ProtocolVersioned, Owned {
         uint256 _blockHeight,
         bytes _rlpParentNodes)
         external
+    returns (bytes32 intentConfirmedHash_, uint256 expirationHeight_)
     {
         bytes32 data = keccak256(abi.encodePacked(_amount, _beneficiary));
         bytes32 requestHash = keccak256(abi.encodePacked(_staker, _stakerNonce, data));
-        bytes32 intentDeclaredHash = keccak256(abi.encodePacked(requestHash, _unlockHeight, _hashLock));
+        bytes32 stakingIntentHash = keccak256(abi.encodePacked(requestHash, _unlockHeight, _hashLock));
 
-        //bytes32 path = CoreInterface.storagepath
-        bytes32 intentConfirmedHash = OpenSTProtocol.confirmIntent(protocolStorage, requestHash, _hashLock, _storageRoot, _blockHeight, _blockHeight, _path, _rlpParentNodes);
+        bytes32 path = ProofLib.bytes32ToBytes(
+            ProofLib.storageVariablePath(intentsMappingStorageIndexPosition,
+            keccak256(abi.encodePacked(_staker, _stakerNonce)))
+        );
 
-        require(intentConfirmedHash == intentDeclaredHash);
+        bytes32 storageRoot = core.getStorageRoot(_blockHeight);
+
+        require(storageRoot != bytes32(0));
+
+        (intentConfirmedHash_, expirationHeight_ ) = OpenSTProtocol.confirmIntent(protocolStorage, stakingIntentHash, _hashLock, storageRoot, _blockHeight, path, _rlpParentNodes);
+
+        emit StakingIntentConfirmed(uuid, intentConfirmedHash_, _staker, _beneficiary, _amount, expirationHeight_, _blockHeight, storageRoot);
 
     }
 }

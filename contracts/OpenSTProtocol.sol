@@ -6,6 +6,7 @@ library OpenSTProtocol {
 
     struct ProtocolStorage {
         uint256 blocksToWaitLong;
+        uint256 blocksToWaitShort;
         mapping(bytes32 /*requestHash */ => Request) requests;
         mapping(bytes32 /*intentHash */ => IntentDeclared) intents;
         mapping(bytes32 /*intentConfirm */ => IntentConfirmed) confirmations;
@@ -27,12 +28,14 @@ library OpenSTProtocol {
     struct IntentConfirmed {
         bytes32 intentDeclaredHash;
         bytes32 hashLock;
+        uint256 expirationHeight;
     }
 
 
     function request(
         ProtocolStorage storage _protocolStorage,
-        uint256 _nonce)
+        uint256 _nonce,
+        bytes32 data)
         internal
         returns (bytes32 requestHash_)
     {
@@ -44,6 +47,7 @@ library OpenSTProtocol {
         _protocolStorage.requests[requestHash_] = Request({
             requester: msg.sender,
             nonce: _nonce
+            data :
             });
     }
 
@@ -81,16 +85,19 @@ library OpenSTProtocol {
         bytes _rlpParentNodes,
         bytes32 _hackLock)
         internal
-    returns (bytes32 intentConfirmHash_)
+    returns (bytes32 intentConfirmHash_, uint256 expirationHeight_)
     {
         // check if the intent is declared
         require(MerklePatriciaProof.verify(keccak256(abi.encodePacked(_intentDeclaredHash)), _path, _rlpParentNodes, _storageRoot));
 
         intentConfirmHash_ = keccak256(_intentDeclaredHash, _hackLock);
 
+        expirationHeight_ = block.number + _protocolStorage.blocksToWaitShort;
+
         _protocolStorage.confirmations[_intentDeclaredHash] = IntentConfirmed({
             intentDeclaredHash : _intentDeclaredHash,
-            hashLock : _hackLock
+            hashLock : _hackLock,
+            expirationHeight : expirationHeight_
             });
     }
 
@@ -112,35 +119,37 @@ library OpenSTProtocol {
         require(intentDeclared.hashLock == keccak256(abi.encodePacked(_unlockSecret)));
 
         delete _protocolStorage.requests[requestHash];
-        delete _protocolStorage.intents[_intentDeclaredHash];
+        delete _protocolStorage.intents[_intentHash];
     }
 
     function processIntentConfirmation(
         ProtocolStorage storage _protocolStorage,
-        bytes32 _intentHash,
+        bytes32 _intentConfirmationHash,
         bytes32 _unlockSecret
     )
     internal
     returns (bool /*success*/)
     {
         //todo check height
-        IntentConfirmed intentConfirmation = _protocolStorage.confirmations[_intentDeclaredHash];
+        IntentConfirmed intentConfirmation = _protocolStorage.confirmations[_intentConfirmationHash];
         require(intentConfirmation.hashLock != bytes32(0));
 
         require(intentConfirmation.hashLock == keccak256(abi.encodePacked(_unlockSecret)));
-        delete _protocolStorage.confirmations[_intentDeclaredHash];
+        delete _protocolStorage.confirmations[_intentConfirmationHash];
     }
 
     function revert(
         ProtocolStorage storage _protocolStorage,
-        bytes32 requestHash
+        bytes32 _intentDeclaredHash
     )
     returns (address requester,
         bytes32 requestHash
     )
     {
-        require(_protocolStorage.requests[requestHash].requester != address(0));
-        require(_protocolStorage.intents[requestHash].hashLock == bytes32(0));
+        bytes32 requestHash = _protocolStorage.intents[_intentDeclaredHash].requestHash;
+
+        require(_protocolStorage.intents[_intentDeclaredHash].hashLock == bytes32(0));
+        require(_protocolStorage.requests[requestHash].requester == bytes32(0));
 
         requester = _protocolStorage.requests[requestHash].requester;
 
