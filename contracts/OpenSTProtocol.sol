@@ -35,19 +35,19 @@ library OpenSTProtocol {
     function request(
         ProtocolStorage storage _protocolStorage,
         uint256 _nonce,
-        bytes32 data)
+        bytes32 _data)
         internal
         returns (bytes32 requestHash_)
     {
-        requestHash_ = keccak256(abi.encodePacked(msg.sender, _nonce));
+        requestHash_ = keccak256(abi.encodePacked(msg.sender, _nonce, _data));
         Request obj = _protocolStorage.requests[requestHash_];
 
         require(obj.requester != address(0));
 
         _protocolStorage.requests[requestHash_] = Request({
             requester: msg.sender,
-            nonce: _nonce
-            data :
+            nonce: _nonce,
+            data : _data
             });
     }
 
@@ -146,7 +146,7 @@ library OpenSTProtocol {
         bytes32 requestHash
     )
     {
-        bytes32 requestHash = _protocolStorage.intents[_intentDeclaredHash].requestHash;
+        requestHash = _protocolStorage.intents[_intentDeclaredHash].requestHash;
 
         require(_protocolStorage.intents[_intentDeclaredHash].hashLock == bytes32(0));
         require(_protocolStorage.requests[requestHash].requester == bytes32(0));

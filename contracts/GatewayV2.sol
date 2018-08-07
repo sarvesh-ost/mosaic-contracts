@@ -128,10 +128,12 @@ contract Gateway is ProtocolVersioned, Owned, Hasher {
         require(_amount > uint256(0));
         require(_beneficiary != address(0));
 
+        nonces[msg.sender]++;
         uint256 nonce = nonces[msg.sender];
-        nonces[msg.sender] = nonce + 1;
 
-        bytes32 requestHash = OpenSTProtocol.request(protocolStorage, nonce);
+        bytes32 data = keccak256(abi.encodePacked(_amount, _beneficiary));
+
+        bytes32 requestHash = OpenSTProtocol.request(protocolStorage, nonce, data);
         // check if the stake request does not exists
         require(stakeRequests[requestHash].beneficiary == address(0));
 
