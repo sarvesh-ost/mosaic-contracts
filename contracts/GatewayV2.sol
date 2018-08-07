@@ -54,6 +54,8 @@ contract Gateway is ProtocolVersioned, Owned, Hasher {
         uint256 _nonce,
         uint256 _unlockHeight,
         bytes32 _stakingIntentHash);
+
+    event ProcessedStaking(bytes32 indexed _uuid, bytes32 indexed _stakingIntentHash, address _staker, address _beneficiary, uint256 _amount, bytes32 _unlockSecret);
     /** Below event is emitted after successful execution of setWorkers */
     event WorkersSet(WorkersInterface _workers);
 
@@ -216,8 +218,9 @@ contract Gateway is ProtocolVersioned, Owned, Hasher {
     {
         require(_stakingIntentHash != bytes32(0));
         bytes32 requestHash;
+        address requester;
 
-        requestHash = OpenSTProtocol.processIntentDeclaration(protocolStorage, _stakingIntentHash, _unlockSecret);
+        (requester, requestHash) = OpenSTProtocol.processIntentDeclaration(protocolStorage, _stakingIntentHash, _unlockSecret);
 
         StakeRequest stakeRequest = stakeRequests[requestHash];
         require(stakeRequest.amount != 0);
@@ -235,8 +238,8 @@ contract Gateway is ProtocolVersioned, Owned, Hasher {
         }
         stakeRequestAmount = stakeRequest.amount;
         // delete the stake request from the mapping storage
+        emit ProcessedStaking(uuid, _stakingIntentHash, requester, stakeRequest.beneficiary, stakeRequest.amount, _unlockSecret);
         delete stakeRequests[requestHash];
-
         return stakeRequestAmount;
     }
 
