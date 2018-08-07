@@ -103,7 +103,7 @@ library OpenSTProtocol {
             hashLock : _hashLock,
             unlockHeight : unlockHeight
             });
-        protocolStorage.requests[_requestHash].intentHash = intentDeclaredHash_;
+        _protocolStorage.requests[_requestHash].intentHash = intentDeclaredHash_;
     }
 
 

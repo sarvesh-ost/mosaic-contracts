@@ -42,7 +42,7 @@ contract Gateway is ProtocolVersioned, Owned, Hasher {
     /** Events */
 
     /** Below event is emitted after successful execution of requestStake */
-    event StakeRequested(address _staker, uint256 _nonce, uint256 _amount, address _beneficiary);
+    event StakeRequested(bytes32 requestHash, uint256 _amount, address _beneficiary);
     /** Below event is emitted after successful execution of revertStakeRequest */
     event StakeRequestReverted(address _staker, uint256 _amount);
     /** Below event is emitted after successful execution of rejectStakeRequest */
@@ -143,7 +143,7 @@ contract Gateway is ProtocolVersioned, Owned, Hasher {
             amount : _amount,
             beneficiary : _beneficiary
             });
-        emit StakeRequested(msg.sender, nonce, _amount, _beneficiary);
+        emit StakeRequested(requestHash, _amount, _beneficiary);
 
         return true;
     }
@@ -155,7 +155,7 @@ contract Gateway is ProtocolVersioned, Owned, Hasher {
      *       Bounty amount is transferred from msg.sender to Gateway contract.
      *       openSTProtocol is approved for staking amount by Gateway contract.
      *
-     *  @param _staker Staker address.
+     *  @param requestHash request Hash
      *  @param _hashLock Hash lock.
      *
      *  @return amountUT Branded token amount.
@@ -164,8 +164,7 @@ contract Gateway is ProtocolVersioned, Owned, Hasher {
      *  @return stakingIntentHash Staking intent hash.
      */
     function acceptStakeRequest(
-        address _staker,
-        uint256 _nonce,
+        bytes32 requestHash,
         bytes32 _hashLock
     )
     external
@@ -177,7 +176,6 @@ contract Gateway is ProtocolVersioned, Owned, Hasher {
     {
         // check if the caller is whitelisted worker
         require(workers.isWorker(msg.sender));
-        bytes32 requestHash = keccak256(abi.encodePacked(_staker, _nonce));
 
         StakeRequest storage stakeRequest = stakeRequests[requestHash];
 
@@ -192,7 +190,7 @@ contract Gateway is ProtocolVersioned, Owned, Hasher {
 
         (stakingIntentHash, unlockHeight) = OpenSTProtocol.declareIntent(protocolStorage, requestHash, _hashLock);
 
-        emit StakeRequestAccepted(_staker, stakeRequest.amount, _nonce, unlockHeight, stakingIntentHash);
+        emit StakeRequestAccepted(protocolStorage.requests[requestHash].requester, stakeRequest.amount, protocolStorage.requests[requestHash].nonce, unlockHeight, stakingIntentHash);
 
         return (stakeRequest.amount, unlockHeight, stakingIntentHash);
     }
