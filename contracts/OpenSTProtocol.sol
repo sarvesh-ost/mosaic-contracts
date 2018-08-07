@@ -35,11 +35,11 @@ library OpenSTProtocol {
     function request(
         ProtocolStorage storage _protocolStorage,
         uint256 _nonce,
-        bytes32 data)
+        bytes32 _data)
         internal
         returns (bytes32 requestHash_)
     {
-        requestHash_ = keccak256(abi.encodePacked(msg.sender, _nonce));
+        requestHash_ = keccak256(abi.encodePacked(msg.sender, _nonce, _data));
         Request obj = _protocolStorage.requests[requestHash_];
 
         require(obj.requester != address(0));
@@ -47,7 +47,7 @@ library OpenSTProtocol {
         _protocolStorage.requests[requestHash_] = Request({
             requester: msg.sender,
             nonce: _nonce,
-            data : data
+            data : _data
             });
     }
 
@@ -80,23 +80,25 @@ library OpenSTProtocol {
     function confirmIntent(
         ProtocolStorage storage _protocolStorage,
         bytes32 _intentDeclaredHash,
+        bytes32 _hashLock,
         bytes32 _storageRoot,
+        uint256 _blockHeight,
         bytes _path,
-        bytes _rlpParentNodes,
-        bytes32 _hackLock)
+        bytes _rlpParentNodes
+    )
         internal
     returns (bytes32 intentConfirmHash_, uint256 expirationHeight_)
     {
         // check if the intent is declared
         require(MerklePatriciaProof.verify(keccak256(abi.encodePacked(_intentDeclaredHash)), _path, _rlpParentNodes, _storageRoot));
 
-        intentConfirmHash_ = keccak256(_intentDeclaredHash, _hackLock);
+        intentConfirmHash_ = keccak256(_intentDeclaredHash, _hashLock);
 
         expirationHeight_ = block.number + _protocolStorage.blocksToWaitShort;
 
         _protocolStorage.confirmations[_intentDeclaredHash] = IntentConfirmed({
             intentDeclaredHash : _intentDeclaredHash,
-            hashLock : _hackLock,
+            hashLock : _hashLock,
             expirationHeight : expirationHeight_
             });
     }
@@ -146,7 +148,7 @@ library OpenSTProtocol {
         bytes32 requestHash
     )
     {
-        bytes32 requestHash = _protocolStorage.intents[_intentDeclaredHash].requestHash;
+        requestHash = _protocolStorage.intents[_intentDeclaredHash].requestHash;
 
         require(_protocolStorage.intents[_intentDeclaredHash].hashLock == bytes32(0));
         require(_protocolStorage.requests[requestHash].requester == bytes32(0));

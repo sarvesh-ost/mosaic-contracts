@@ -23,9 +23,9 @@ contract CoGateway is ProtocolVersioned, Owned {
 
 
     OpenSTProtocol.ProtocolStorage protocolStorage;
-    CoreInterface core;
-    uint256 intentsMappingStorageIndexPosition = 4;
-    bytes uuid;
+    CoreInterface private core;
+    uint8 private constant intentsMappingStorageIndexPosition = 4;
+    bytes32 uuid;
 
     struct RedeemRequest {
         uint256 amount;
@@ -45,8 +45,11 @@ contract CoGateway is ProtocolVersioned, Owned {
         require(_amount > uint256(0));
         require(_beneficiary != address(0));
 
-        nonce_ = nonces[msg.sender]++;
-        requestHash_ = OpenSTProtocol.request(protocolStorage, nonce_);
+        nonces[msg.sender]++;
+        nonce_ = nonces[msg.sender];
+        bytes32 data = keccak256(abi.encodePacked(_amount, _beneficiary));
+
+        requestHash_ = OpenSTProtocol.request(protocolStorage, nonce_, data);
         // check if the redeem request does not exists
         require(redeemRequests[requestHash_].beneficiary == address(0));
 
@@ -62,7 +65,6 @@ contract CoGateway is ProtocolVersioned, Owned {
 
 
     function confirmStakingIntent(
-        //bytes32 _uuid,
         address _staker,
         uint256 _stakerNonce,
         address _beneficiary,
@@ -72,13 +74,15 @@ contract CoGateway is ProtocolVersioned, Owned {
         uint256 _blockHeight,
         bytes _rlpParentNodes)
         external
-    returns (bytes32 intentConfirmedHash_, uint256 expirationHeight_)
+        returns (
+            bytes32 intentConfirmedHash_,
+            uint256 expirationHeight_)
     {
         bytes32 data = keccak256(abi.encodePacked(_amount, _beneficiary));
         bytes32 requestHash = keccak256(abi.encodePacked(_staker, _stakerNonce, data));
         bytes32 stakingIntentHash = keccak256(abi.encodePacked(requestHash, _unlockHeight, _hashLock));
 
-        bytes32 path = ProofLib.bytes32ToBytes(
+        bytes memory path = ProofLib.bytes32ToBytes(
             ProofLib.storageVariablePath(intentsMappingStorageIndexPosition,
             keccak256(abi.encodePacked(_staker, _stakerNonce)))
         );
