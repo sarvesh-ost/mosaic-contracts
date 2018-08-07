@@ -215,8 +215,9 @@ contract Gateway is ProtocolVersioned, Owned, Hasher {
     returns (uint256 stakeRequestAmount)
     {
         require(_stakingIntentHash != bytes32(0));
+        bytes32 requestHash;
 
-        (address staker, bytes32 requestHash) = OpenSTProtocol.processIntent(protocolStorage, _stakingIntentHash, _unlockSecret);
+        (, requestHash) = OpenSTProtocol.processIntentDeclaration(protocolStorage, _stakingIntentHash, _unlockSecret);
 
         StakeRequest stakeRequest = stakeRequests[requestHash];
         require(stakeRequest.amount != 0);
@@ -258,8 +259,9 @@ contract Gateway is ProtocolVersioned, Owned, Hasher {
     {
         //todo WIP
         require(_stakingIntentHash != bytes32(0));
-
-        (address staker, bytes32 requestHash) = OpenSTProtocol.revertStaking(protocolStorage, _stakingIntentHash);
+        address staker;
+        bytes32 requestHash;
+        (staker, requestHash) = OpenSTProtocol.revertStaking(protocolStorage, _stakingIntentHash);
 
         StakeRequest storage stakeRequest = stakeRequests[requestHash];
 
