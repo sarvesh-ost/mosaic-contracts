@@ -17,6 +17,7 @@ library OpenSTProtocol {
         address requester;
         uint256 nonce;
         bytes32 data;
+        bytes32 intentHash;
     }
 
     struct IntentDeclared {
@@ -47,8 +48,33 @@ library OpenSTProtocol {
         _protocolStorage.requests[requestHash_] = Request({
             requester: msg.sender,
             nonce: _nonce,
-            data : _data
+            data : _data,
+            intentHash: bytes32(0)
             });
+    }
+
+    function revertRequest(
+        ProtocolStorage storage _protocolStorage,
+        bytes32 _requestHash)
+        internal
+        returns (bool)
+    {
+
+        // check if request exists
+        Request storage request = _protocolStorage.requests[_requestHash];
+        require(request.data != bytes32(0));
+        require(request.requester == msg.sender);
+
+        // check if the request was not accepted
+        require(request.intentHash == bytes32(0));
+
+        IntentDeclared storage intent = _protocolStorage.intents[request.intentHash];
+        require(intent.requestHash == bytes32(0));
+
+        // delete the request object
+        delete _protocolStorage.requests[_requestHash];
+
+        return true;
     }
 
     function declareIntent(

@@ -63,6 +63,15 @@ contract CoGateway is ProtocolVersioned, Owned {
 
     }
 
+    function revertRedeemRequest(bytes32 _requestHash)
+        external
+        returns (
+            uint256 amount_,
+            address beneficiary_)
+    {
+        require(OpenSTProtocol.revertRequest(protocolStorage, _requestHash));
+        delete redeemRequests[_requestHash];
+    }
 
     function confirmStakingIntent(
         address _staker,
