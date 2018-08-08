@@ -56,6 +56,9 @@ contract Gateway is ProtocolVersioned, Owned, Hasher {
         bytes32 _stakingIntentHash);
 
     event ProcessedStaking(bytes32 indexed _uuid, bytes32 indexed _stakingIntentHash, address _staker, address _beneficiary, uint256 _amount, bytes32 _unlockSecret);
+
+
+    event RevertedStake(bytes32 indexed _uuid, bytes32 indexed _stakingIntentHash, address _staker, uint256 _amount);
     /** Below event is emitted after successful execution of setWorkers */
     event WorkersSet(WorkersInterface _workers);
 
@@ -274,6 +277,31 @@ contract Gateway is ProtocolVersioned, Owned, Hasher {
 
         // delete the stake request from the mapping storage
         delete stakeRequests[requestHash];
+
+        emit RevertedStake(uuid, _stakingIntentHash, staker, amount);
+        return amount;
+    }
+
+    function revertStakeRequest(bytes32 _requestHash)
+    external
+    returns (uint256 amount)
+    {
+        require(_requestHash != bytes32(0));
+
+        address staker = OpenSTProtocol.revertRequest(protocolStorage, _requestHash);
+
+        StakeRequest storage stakeRequest = stakeRequests[_requestHash];
+
+        // check if the stake request exists
+        require(stakeRequest.beneficiary != address(0));
+        amount = stakeRequest.amount;
+
+        require(EIP20Interface(brandedToken).transfer(staker, stakeRequest.amount));
+
+        // delete the stake request from the mapping storage
+        delete stakeRequests[_requestHash];
+
+        emit StakeRequestReverted(staker, amount);
 
         return amount;
     }

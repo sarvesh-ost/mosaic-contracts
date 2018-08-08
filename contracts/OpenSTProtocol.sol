@@ -57,7 +57,7 @@ library OpenSTProtocol {
         ProtocolStorage storage _protocolStorage,
         bytes32 _requestHash)
         internal
-        returns (bool)
+    returns (address requester)
     {
 
         // check if request exists
@@ -70,11 +70,9 @@ library OpenSTProtocol {
 
         IntentDeclared storage intent = _protocolStorage.intents[request.intentHash];
         require(intent.requestHash == bytes32(0));
-
+        requester = request.requester;
         // delete the request object
         delete _protocolStorage.requests[_requestHash];
-
-        return true;
     }
 
     function declareIntent(
