@@ -212,7 +212,7 @@ contract CoGateway is ProtocolVersioned, Owned {
 
         (redeemer_, requestHash) = OpenSTProtocol.processIntentDeclaration(protocolStorage, _redemptionIntentHash, _unlockSecret);
 
-        Request redeemRequest = redeemRequests[requestHash];
+        Request storage redeemRequest = redeemRequests[requestHash];
         require(redeemRequest.beneficiary != address(0));
 
         require(utilityToken.transfer(escrow, redeemRequest.amount));
@@ -234,6 +234,40 @@ contract CoGateway is ProtocolVersioned, Owned {
         emit ProcessedRedemption(uuid, _redemptionIntentHash, redeemer_, beneficiary_, redeemAmount_, _unlockSecret);
 
     }
+
+/*
+    function processMinting(
+        bytes32 _stakingIntentHash,
+        bytes32 _unlockSecret)
+    external
+    returns (address tokenAddress)
+    {
+        require(_stakingIntentHash != bytes32(0));
+
+        Request storage mintRequest = mintRequests[_stakingIntentHash];
+
+
+        // present secret to unlock hashlock and continue process
+        require(mint.hashLock == keccak256(abi.encodePacked(_unlockSecret)));
+
+        // as process minting results in a gain it needs to expire well before
+        // the escrow on the cost unlocks in OpenSTValue.processStake
+        require(mint.expirationHeight > block.number);
+
+        UtilityTokenInterface token = registeredTokens[mint.uuid].token;
+        tokenAddress = address(token);
+        require(tokenAddress != address(0));
+
+        require(token.mint(mint.beneficiary, mint.amount));
+
+        emit ProcessedMint(mint.uuid, _stakingIntentHash, tokenAddress, mint.staker,
+            mint.beneficiary, mint.amount, _unlockSecret);
+
+        delete mints[_stakingIntentHash];
+
+        return tokenAddress;
+    }
+*/
 
     function revertRedemption(bytes32 _redemptionIntentHash)
         external
