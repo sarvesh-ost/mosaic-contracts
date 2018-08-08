@@ -55,7 +55,8 @@ contract CoGateway is ProtocolVersioned, Owned {
         address _beneficiary,
         uint256 _amount);
 
-    mapping(bytes32 /*requestHash */ => RedeemRequest) public redeemRequests;
+    mapping(bytes32 /*requestHash */ => Request) public redeemRequests;
+    mapping(bytes32 /*intentHash */ => Request) public mintRequests;
 
     mapping(address /*account */ => uint256) public nonces;
 
@@ -71,7 +72,7 @@ contract CoGateway is ProtocolVersioned, Owned {
     uint8 private constant intentsMappingStorageIndexPosition = 4;
     bytes32 uuid;
 
-    struct RedeemRequest {
+    struct Request {
         uint256 amount;
         address beneficiary;
     }
@@ -97,7 +98,7 @@ contract CoGateway is ProtocolVersioned, Owned {
 
         require(utilityToken.transferFrom(msg.sender, address(this), _amount));
 
-        redeemRequests[requestHash_] = RedeemRequest({
+        redeemRequests[requestHash_] = Request({
             amount: _amount,
             beneficiary: _beneficiary});
 
@@ -116,7 +117,7 @@ contract CoGateway is ProtocolVersioned, Owned {
 
         redeemer_ = OpenSTProtocol.revertRequest(protocolStorage, _requestHash);
 
-        RedeemRequest storage redeemRequest = redeemRequests[_requestHash];
+        Request storage redeemRequest = redeemRequests[_requestHash];
 
         // check if the stake request exists
         require(redeemRequest.beneficiary != address(0));
@@ -146,7 +147,7 @@ contract CoGateway is ProtocolVersioned, Owned {
         require(_hashLock != bytes32(0));
         require(_requestHash != bytes32(0));
 
-        RedeemRequest storage redeemRequest = redeemRequests[_requestHash];
+        Request storage redeemRequest = redeemRequests[_requestHash];
 
         // check if the stake request exists
         require(redeemRequest.beneficiary != address(0));
@@ -192,6 +193,10 @@ contract CoGateway is ProtocolVersioned, Owned {
 
         (intentConfirmedHash_, expirationHeight_ ) = OpenSTProtocol.confirmIntent(protocolStorage, stakingIntentHash, _hashLock, storageRoot, _blockHeight, path, _rlpParentNodes);
 
+        mintRequests[stakingIntentHash] = Request({
+            amount: _amount,
+            beneficiary: _beneficiary});
+
         emit StakingIntentConfirmed(uuid, intentConfirmedHash_, _staker, _beneficiary, _amount, expirationHeight_, _blockHeight, storageRoot);
 
     }
@@ -207,7 +212,7 @@ contract CoGateway is ProtocolVersioned, Owned {
 
         (redeemer_, requestHash) = OpenSTProtocol.processIntentDeclaration(protocolStorage, _redemptionIntentHash, _unlockSecret);
 
-        RedeemRequest redeemRequest = redeemRequests[requestHash];
+        Request redeemRequest = redeemRequests[requestHash];
         require(redeemRequest.beneficiary != address(0));
 
         require(utilityToken.transfer(escrow, redeemRequest.amount));
@@ -239,7 +244,7 @@ contract CoGateway is ProtocolVersioned, Owned {
         bytes32 requestHash;
         (redeemer_, requestHash) = OpenSTProtocol.revert(protocolStorage, _redemptionIntentHash);
 
-        RedeemRequest storage redeemRequest = redeemRequests[requestHash];
+        Request storage redeemRequest = redeemRequests[requestHash];
 
         // check if the redeem request exists
         require(redeemRequest.beneficiary != address(0));
