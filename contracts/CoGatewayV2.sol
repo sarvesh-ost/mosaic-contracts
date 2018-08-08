@@ -11,10 +11,35 @@ import "./EIP20Interface.sol";
 
 contract CoGateway is ProtocolVersioned, Owned {
 
-    event RedeemRequested(address _redeemer, uint256 _amount, address _beneficiary, uint256 _nonce, bytes32 _requestHash);
-    event ProcessedRedemption(bytes32 indexed _uuid, bytes32 indexed _redemptionIntentHash, address _redeemer, address _beneficiary, uint256 _amount, bytes32 _unlockSecret);
-    event StakingIntentConfirmed(bytes32 _uuid, bytes32 _intentConfirmedHash_, address _staker, address _beneficiary, uint256 _amount, uint256 _expirationHeight,
-        uint256 _blockHeight, bytes32 _storageRoot);
+    event RedeemRequested(
+        address _redeemer,
+        uint256 _amount,
+        address _beneficiary,
+        uint256 _nonce,
+        bytes32 _requestHash);
+
+    event RedeemRequestReverted(
+        address _redeemer,
+        address _beneficiary,
+        uint256 _amount);
+
+    event ProcessedRedemption(
+        bytes32 indexed _uuid,
+        bytes32 indexed _redemptionIntentHash,
+        address _redeemer,
+        address _beneficiary,
+        uint256 _amount,
+        bytes32 _unlockSecret);
+
+    event StakingIntentConfirmed(
+        bytes32 _uuid,
+        bytes32 _intentConfirmedHash_,
+        address _staker,
+        address _beneficiary,
+        uint256 _amount,
+        uint256 _expirationHeight,
+        uint256 _blockHeight,
+        bytes32 _storageRoot);
 
     event RedeemRequestAccepted(
         address _redeemer,
@@ -22,6 +47,13 @@ contract CoGateway is ProtocolVersioned, Owned {
         uint256 _nonce,
         uint256 _unlockHeight,
         bytes32 _redeemIntentHash);
+
+    event RevertedRedemption(
+        bytes32 indexed _uuid,
+        bytes32 indexed _redemptionIntentHash,
+        address _redeemer,
+        address _beneficiary,
+        uint256 _amount);
 
     mapping(bytes32 /*requestHash */ => RedeemRequest) public redeemRequests;
 
@@ -43,8 +75,6 @@ contract CoGateway is ProtocolVersioned, Owned {
         uint256 amount;
         address beneficiary;
     }
-
-
 
     function requestRedeem(
         uint256 _amount,
@@ -78,13 +108,29 @@ contract CoGateway is ProtocolVersioned, Owned {
     function revertRedeemRequest(bytes32 _requestHash)
         external
         returns (
-            uint256 amount_,
-            address beneficiary_)
+            address redeemer_,
+            address beneficiary_,
+            uint256 amount_)
     {
-        require(OpenSTProtocol.revertRequest(protocolStorage, _requestHash));
-        delete redeemRequests[_requestHash];
-    }
+        require(_requestHash != bytes32(0));
 
+        redeemer_ = OpenSTProtocol.revertRequest(protocolStorage, _requestHash);
+
+        RedeemRequest storage redeemRequest = redeemRequests[_requestHash];
+
+        // check if the stake request exists
+        require(redeemRequest.beneficiary != address(0));
+        amount_ = redeemRequest.amount;
+        beneficiary_ = redeemRequest.beneficiary;
+
+        require(utilityToken.transfer(redeemer_, amount_));
+
+        // delete the redeem request from the mapping storage
+        delete redeemRequests[_requestHash];
+
+        emit RedeemRequestReverted(redeemer_, beneficiary_, amount_);
+
+    }
 
     function acceptRedeemRequest(
         bytes32 _requestHash,
@@ -93,8 +139,7 @@ contract CoGateway is ProtocolVersioned, Owned {
     external
     returns (
         uint256 unlockHeight_,
-        bytes32 redeemIntentHash_
-    )
+        bytes32 redeemIntentHash_)
     {
         // check if the caller is whitelisted worker
         require(workers.isWorker(msg.sender));
@@ -184,4 +229,31 @@ contract CoGateway is ProtocolVersioned, Owned {
         emit ProcessedRedemption(uuid, _redemptionIntentHash, redeemer_, beneficiary_, redeemAmount_, _unlockSecret);
 
     }
+
+    function revertRedemption(bytes32 _redemptionIntentHash)
+        external
+        returns (address redeemer_, address beneficiary_, uint256 amount_)
+    {
+        //todo WIP
+        require(_redemptionIntentHash != bytes32(0));
+        bytes32 requestHash;
+        (redeemer_, requestHash) = OpenSTProtocol.revert(protocolStorage, _redemptionIntentHash);
+
+        RedeemRequest storage redeemRequest = redeemRequests[requestHash];
+
+        // check if the redeem request exists
+        require(redeemRequest.beneficiary != address(0));
+        amount_ = redeemRequest.amount;
+        beneficiary_ = redeemRequest.beneficiary;
+
+        require(utilityToken.transfer(redeemer_, amount_));
+        require(utilityToken.transfer(workers, bounty));
+
+        // delete the stake request from the mapping storage
+        delete redeemRequests[requestHash];
+
+        emit RevertedRedemption(uuid, _redemptionIntentHash, redeemer_, beneficiary_, amount_);
+
+    }
+
 }
