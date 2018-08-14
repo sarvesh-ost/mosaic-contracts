@@ -142,7 +142,7 @@ contract Gateway is ProtocolVersioned, Owned {
 
         emit StakingIntentDeclared(uuid, msg.sender, _nonce, _stakingIntentKeyHash, _beneficiary,
             _amount, _unlockHeight, _stakingIntentHash);
-
+tru
         return (_amount, _nonce, _unlockHeight, _stakingIntentHash, _stakingIntentKeyHash);
     }
 

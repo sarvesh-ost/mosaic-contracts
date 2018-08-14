@@ -1,8 +1,8 @@
 pragma solidity ^0.4.23;
 
 import "./ValueToken.sol"; // this will be interface.
-import "./SafeMath.sol";
-import "./ProtocolVersioned.sol";
+import "../SafeMath.sol";
+import "../ProtocolVersioned.sol";
 
 contract BrandedTokenStake is ProtocolVersioned {
 	using SafeMath for uint256;

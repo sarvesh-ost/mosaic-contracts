@@ -1,9 +1,9 @@
 pragma solidity ^0.4.23;
 
-import "./ProtocolVersioned.sol";
-import "./Owned.sol";
+import "../ProtocolVersioned.sol";
+import "../Owned.sol";
 import "./OpenSTProtocol.sol";
-import "./WorkersInterface.sol";
+import "../WorkersInterface.sol";
 
 /*
 contract CoGateway is ProtocolVersioned, Owned {

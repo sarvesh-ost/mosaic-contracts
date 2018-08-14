@@ -22,15 +22,15 @@ pragma solidity ^0.4.23;
 //
 // ----------------------------------------------------------------------------
 
-import "./ProtocolVersioned.sol";
-import "./OpenSTValueInterface.sol";
-import "./EIP20Interface.sol";
-import "./Owned.sol";
-import "./WorkersInterface.sol";
+import "../ProtocolVersioned.sol";
+import "../OpenSTValueInterface.sol";
+import "../EIP20Interface.sol";
+import "../Owned.sol";
+import "../WorkersInterface.sol";
 import "./OpenSTProtocol.sol";
-import "./Hasher.sol";
-import "./ProofLib.sol";
-import "./CoreInterface.sol";
+import "../Hasher.sol";
+import "../ProofLib.sol";
+import "../CoreInterface.sol";
 
 /**
  *  @title Gateway contract which implements ProtocolVersioned, Owned.
@@ -313,6 +313,7 @@ contract Gateway is ProtocolVersioned, Owned, Hasher {
     }
 
 
+/*
     function confirmRedemptionIntent(
         address _redeemer,
         uint256 _redeemerNonce,
@@ -345,6 +346,7 @@ contract Gateway is ProtocolVersioned, Owned, Hasher {
 
         emit RedemptionIntentConfirmed(uuid, redemptionIntentHash, _redeemer, _beneficiary, _amount, expirationHeight_);
     }
+*/
 
     function makeRedemptionIntentHash(uint256 _amount,
         address _beneficiary,

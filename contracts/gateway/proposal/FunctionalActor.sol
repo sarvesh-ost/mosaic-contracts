@@ -1,7 +1,7 @@
 pragma solidity ^0.4.23;
 
-import "./SafeMath.sol";
-import "./Owned.sol";
+import "../SafeMath.sol";
+import "../Owned.sol";
 
 contract FunctionalActor is Owned {
     using SafeMath for uint256;

@@ -1,10 +1,10 @@
 pragma solidity ^0.4.23;
 
-import "./SafeMath.sol";
-import "./EIP20Token.sol";
-import "./Owned.sol";
+import "../SafeMath.sol";
+import "../EIP20Token.sol";
+import "../Owned.sol";
 import "./FunctionalActor.sol";
-import "./WorkersInterface.sol";
+import "../WorkersInterface.sol";
 
 contract ValueToken is EIP20Token, Owned {
 
