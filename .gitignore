@@ -13,8 +13,9 @@ contracts/abi/
 # don't commit node_modules
 node_modules
 
-#Dont track idea file
+# Do not track intelliJ files
 .idea/
+*.iml
 
 build/
 
@@ -27,4 +28,3 @@ build/
 *.synctex.gz
 *.synctex.gz(busy)
 *.pdfsync
-

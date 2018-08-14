@@ -22,22 +22,25 @@
         5. [Event Names](#event-names)
         6. [Function Names](#function-names)
         7. [Function Argument Names](#function-argument-names)
-        8. [Local and State Variable Names](#local-and-state-variable-names)
-        9. [Constants](#constants)
-        10. [Modifier Names](#modifier-names)
-        11. [Enums](#enums)
-        12. [Avoiding Naming Collisions](#avoiding-naming-collisions)
+        8. [Function Return Parameter Names](#function-return-parameter-names)
+        9. [Local and State Variable Names](#local-and-state-variable-names)
+        10. [Constants](#constants)
+        11. [Modifier Names](#modifier-names)
+        12. [Enums](#enums)
+        13. [Avoiding Naming Collisions](#avoiding-naming-collisions)
   3. [Best Practices](#best-practices)
         1. [Variable Initialization](#variable-initialization)
         2. [Casting](#casting)
         3. [Require and Assert](#require-and-assert)
+        4. [Function Returns](#function-returns)
   4. [Documentation](#documentation)
         1. [Single Line](#single-line)
         2. [Multi Line](#multi-line)
-        3. [Spaces](#spaces)
-        4. [English Sentence](#english-sentence)
-        5. [Grouping](#grouping)
-        6. [Alignment](#alignment)
+        3. [Structs and Mappings](#structs-and-mappings)
+        4. [Spaces](#spaces)
+        5. [English Sentence](#english-sentence)
+        6. [Grouping](#grouping)
+        7. [Alignment](#alignment)
   5. [Comments](#comments)
 
 *The current style guide is mostly based on [Ethereum Solidity Style Guide](http://solidity.readthedocs.io/en/v0.4.24/style-guide.html)
@@ -166,6 +169,38 @@ contract A {
     modifier onlyOwner() {
         ...
     }
+}
+```
+
+Within a struct, surround documented field declarations with a *single* blank
+line.
+
+`Example`
+
+```solidity
+/**
+ * Message stores the message content as well as additional data about the
+ * sender and the receiver. This way, it can be verified that the message has
+ * not been manipulated.
+ */
+struct Message {
+    /**
+     * The message content bytes encoded.
+     * The string encoding must be UTF-8.
+     */
+    bytes32 message;
+
+    /** Address where the message should be sent to. */
+    address receiver;
+
+    /** Address of the account that created this message. */
+    address sender;
+
+    /**
+     * The signature is created by the sender and is the signed hash of the
+     * message: sha3(message, receiver, sender).
+     */
+    bytes32 signature;
 }
 ```
 
@@ -1069,6 +1104,16 @@ Contracts and libraries should be named using the CapWords style.
 
     SimpleToken, MerklePatriciaProof, OpenSTValueInterface
 
+Libraries' names should not include `Lib` prefix/postfix.
+
+`Good`
+
+    SafeMath, UpradableProxy
+
+`Bad`
+
+    SafeMathLib, LibUpgradableProxy
+
 ### Struct Names
 
 Structs should be named using the CapWords style.
@@ -1115,6 +1160,30 @@ function requestStake(
 
 When writing library functions that operate on a custom struct, the struct
 should be the first argument and should always be named `self`.
+
+### Function Return Parameter Names
+
+Function named return parameters should use mixedCase and end with underscore.
+
+`Example`
+
+    winningProposal_, winnerName_
+
+```solidity
+function winningProposal()
+    public
+    view
+    returns (uint winningProposal_)
+{
+    uint winningVoteCount = 0;
+    for (uint p = 0; p < proposals.length; p++) {
+        if (proposals[p].voteCount > winningVoteCount) {
+            winningVoteCount = proposals[p].voteCount;
+            winningProposal_ = p;
+        }
+    }
+}
+```
 
 ### Local and State Variable Names
 
@@ -1213,6 +1282,59 @@ contract state variables are not met, a failing external component.
 Specifying *message* parameter for `require` is mandatory.
 For `assert` use your best judgement.
 
+### Function Returns
+
+Solidity allows named return parameters.
+
+`Example`
+
+```solidity
+function winningProposal()
+    public
+    view
+    returns (uint winningProposal_)
+{
+    uint winningVoteCount = 0;
+    for (uint p = 0; p < proposals.length; p++) {
+        if (proposals[p].voteCount > winningVoteCount) {
+            winningVoteCount = proposals[p].voteCount;
+            winningProposal_ = p;
+        }
+    }
+}
+```
+
+We encourage to use named return parameters in all cases except the obvious ones, like:
+
+`Example`
+
+```solidity
+function winnerName()
+    public
+    view
+    returns (bytes32 winnerName_)
+{
+    winnerName_ = proposals[winningProposal()].name;
+}
+```
+
+In above example, one could use unnamed return parameter:
+
+```solidity
+function winnerName()
+    public
+    view
+    returns (bytes32)
+{
+    return proposals[winningProposal()].name;
+}
+```
+
+`NOTE` Multiple return parameters should be always named one.
+
+Only **empty** `return` statements are allowed from functions with named return parameters.
+This should be only used for early returns. Otherwise, no `return` statement.
+
 ## Documentation
 
 Solidity contracts, functions, enums, etc documentation follows
@@ -1277,8 +1399,8 @@ Multi line documentation format is:
  *
  * @param _blockHeight Block height to return storage root.
  *
- * @returns bytes32(0) if a storage root for specified block height was not
- *          verified otherwise saved storage root.
+ * @return bytes32(0) if a storage root for specified block height was not
+ *         verified otherwise saved storage root.
  */
 function getStorageRoot(uint256 _blockHeight)
     public
@@ -1287,6 +1409,75 @@ function getStorageRoot(uint256 _blockHeight)
 {
     ...
 }
+```
+
+### Structs and Mappings
+
+Document structs above the struct declaration.
+Document struct fields above the respective field.
+
+`Good`
+
+```solidity
+/** A Bank has a single owner. You need to create one bank per person. */
+struct Bank {
+    /** The owner of the bank functions simultaniously as the owner of the funds in balance. */
+    address owner;
+
+    /** The balance of the owner in Ethereum Wei. */
+    uint256 balance;
+}
+
+/**
+ * Message stores the message content as well as additional data about the
+ * sender and the receiver. This way, it can be verified that the message has
+ * not been manipulated.
+ */
+struct Message {
+    /**
+     * The message content bytes encoded.
+     * The string encoding must be UTF-8.
+     */
+    bytes32 message;
+
+    /** Address where the message should be sent to. */
+    address receiver;
+
+    /** Address of the account that created this message. */
+    address sender;
+
+    /**
+     * The signature is created by the sender and is the signed hash of the
+     * message: sha3(message, receiver, sender).
+     */
+    bytes32 signature;
+}
+```
+
+`Bad`
+
+```solidity
+/** A Bank has a single owner. You need to create one bank per person. */
+struct Bank {
+    address owner; /** The owner of the bank functions simultaniously as the owner of the funds in balance. */
+    uint256 balance; // The balance of the owner in Ethereum Wei.
+}
+```
+
+Document mappings above the mappings' respective declaration.
+
+`Good`
+
+```solidity
+/** balances stores per address the total balance in SimpleToken Wei. */
+mapping (address => uint) public balances;
+```
+
+`Bad`
+
+```solidity
+mapping (address => uint) public balances; /** balances stores per address the total balance in SimpleToken Wei. */
+mapping (address => uint) public balances; // balances stores per address the total balance in SimpleToken Wei.
 ```
 
 ### Spaces
@@ -1331,7 +1522,7 @@ All documentations starts with capital letter and end with `'.'` (dot).
  *
  * @param _blockHeight Block height to return storage root.
  *
- * @returns bytes32(0) if a storage root for specified block height was not
+ * @return bytes32(0) if a storage root for specified block height was not
  *          verified otherwise saved storage root.
  */
 function getStorageRoot(uint256 _blockHeight)
@@ -1351,7 +1542,7 @@ function getStorageRoot(uint256 _blockHeight)
  *
  * @param _blockHeight Block height to return storage root
  *
- * @returns bytes32(0) If a storage root for specified block height was not
+ * @return bytes32(0) If a storage root for specified block height was not
  *          verified otherwise saved storage root.
  */
 function getStorageRoot(uint256 _blockHeight)
@@ -1484,6 +1675,39 @@ function approve(address _spender, uint256 _value) returns (bool success);
  */
 function approve(address _spender, uint256 _value) returns (bool success);
 ```
+
+### Multiple Return Parameters
+
+Use the following format for multiple return parameter documentation.
+
+`Example`
+
+```solidity
+/**
+ * Calculates sum and production.
+ *
+ * @param _a First input to calculate sum and production.
+ * @param _b Second input to calculate sum and production.
+ *
+ * @return sum_ Sum of the input arguments.
+ * @return product_ Product of the input arguments.
+ *                  It's really product of the input arguments.
+ */
+function arithmetics(uint _a, uint _b)
+    public
+    pure
+    returns (uint sum_, uint product_)
+{
+    sum_ = _a + _b;
+    product_ = _a * _b;
+}
+```
+
+`NOTE` The order of documenting the return parameters should be the same as a return order.
+
+`NOTE` No blank line between documentation of individual input parameters.
+
+`NOTE` Return parameter alignment should be the same as for function arguments.
 
 ## Comments
 
