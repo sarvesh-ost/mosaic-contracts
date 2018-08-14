@@ -29,6 +29,8 @@ import "./Owned.sol";
 import "./WorkersInterface.sol";
 import "./OpenSTProtocol.sol";
 import "./Hasher.sol";
+import "./ProofLib.sol";
+import "./CoreInterface.sol";
 
 /**
  *  @title Gateway contract which implements ProtocolVersioned, Owned.
@@ -59,6 +61,8 @@ contract Gateway is ProtocolVersioned, Owned, Hasher {
 
 
     event RevertedStake(bytes32 indexed _uuid, bytes32 indexed _stakingIntentHash, address _staker, uint256 _amount);
+    event RedemptionIntentConfirmed(bytes32 indexed _uuid, bytes32 _redemptionIntentHash,
+        address _redeemer, address _beneficiary, uint256 _amount, uint256 _expirationHeight);
     /** Below event is emitted after successful execution of setWorkers */
     event WorkersSet(WorkersInterface _workers);
 
@@ -76,6 +80,8 @@ contract Gateway is ProtocolVersioned, Owned, Hasher {
     address stakeAddress;
     address brandedToken;
     OpenSTProtocol.ProtocolStorage protocolStorage;
+    CoreInterface core;
+    uint8 intentsMappingStorageIndexPosition = 4;
 
     /** Structures */
 
@@ -304,6 +310,55 @@ contract Gateway is ProtocolVersioned, Owned, Hasher {
         emit StakeRequestReverted(staker, amount);
 
         return amount;
+    }
+
+
+    function confirmRedemptionIntent(
+        address _redeemer,
+        uint256 _redeemerNonce,
+        address _beneficiary,
+        uint256 _amount,
+        uint256 _unlockHeight,
+        bytes32 _hashLock,
+        uint256 _blockHeight,
+        bytes _rlpParentNodes)
+    external
+    returns (
+        bytes32 intentConfirmedHash_,
+        uint256 expirationHeight_)
+    {
+        //bytes32 data = keccak256(abi.encodePacked(_amount, _beneficiary));
+        // bytes32 requestHash = keccak256(abi.encodePacked(_redeemer, _redeemerNonce, data));
+        bytes32  redemptionIntentHash = makeRedemptionIntentHash(_amount, _beneficiary, _redeemer, _redeemerNonce, _unlockHeight, _hashLock);
+        //keccak256(abi.encodePacked(requestHash, _unlockHeight, _hashLock));
+
+        bytes memory path = ProofLib.bytes32ToBytes(
+            ProofLib.storageVariablePath(intentsMappingStorageIndexPosition,
+            keccak256(abi.encodePacked(_redeemer, _redeemerNonce)))
+        );
+
+        bytes32 storageRoot = core.getStorageRoot(_blockHeight);
+
+        require(storageRoot != bytes32(0));
+
+        (intentConfirmedHash_, expirationHeight_) = OpenSTProtocol.confirmIntent(protocolStorage, redemptionIntentHash, _hashLock, storageRoot, _blockHeight, path, _rlpParentNodes);
+
+        emit RedemptionIntentConfirmed(uuid, redemptionIntentHash, _redeemer, _beneficiary, _amount, expirationHeight_);
+    }
+
+    function makeRedemptionIntentHash(uint256 _amount,
+        address _beneficiary,
+        address _redeemer,
+        uint256 _redeemerNonce,
+        uint256 _unlockHeight,
+        bytes32 _hashLock
+    )
+    private
+    returns (bytes32){
+
+        bytes32 data = keccak256(abi.encodePacked(_amount, _beneficiary));
+        bytes32 requestHash = keccak256(abi.encodePacked(_redeemer, _redeemerNonce, data));
+        return keccak256(abi.encodePacked(requestHash, _unlockHeight, _hashLock));
     }
 
 
