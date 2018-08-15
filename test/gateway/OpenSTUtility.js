@@ -24,6 +24,9 @@ const HashLock = require('../lib/hash_lock.js');
 const OpenSTUtility_utils = require('./OpenSTUtility_utils.js');
 const BrandedToken = artifacts.require("./BrandedToken.sol");
 const BigNumber = require('bignumber.js');
+const rootPrefix = "../..";
+const proofData = require( rootPrefix + "/test/data/proof.json" );
+const ProtocolVersioned_utils = require('./ProtocolVersioned_utils.js');
 
 ///
 /// Test stories
@@ -94,6 +97,14 @@ const BigNumber = require('bignumber.js');
 ///		STPrime
 /// 		successfully processes by registrar
 ///
+/// MerkleVerificationOfStake
+///		successfully verifies stake 
+///
+/// InititateProtocolTransfer
+///		succesfully initiates protocol transfer
+///
+/// RevokeProtocolTransfer
+///		successfully revokes protocol transfer
 
 contract('OpenSTUtility', function(accounts) {
 	const chainIdValue   		= 3;
@@ -721,14 +732,14 @@ contract('OpenSTUtility', function(accounts) {
 	});
 
 	// Unit test case for revertMinting
-  describe('revert minting', async () => {
-    var redemptionIntentHash = null;
-  	var brandedToken = null;
-  	const AMOUNT_ST = new BigNumber(web3.toWei(10, "ether"));
-  	const AMOUNT_BT = new BigNumber(AMOUNT_ST*conversionRate);
+    describe('revert minting', async () => {
+    	var redemptionIntentHash = null;
+  		var brandedToken = null;
+  		const AMOUNT_ST = new BigNumber(web3.toWei(10, "ether"));
+  		const AMOUNT_BT = new BigNumber(AMOUNT_ST*conversionRate);
 
 		const lock = HashLock.getHashLock();
-      var stakeUnlockHeight = new BigNumber(blockToWaitLong);
+      	var stakeUnlockHeight = new BigNumber(blockToWaitLong);
 
 			context('BrandedToken', async () => {
 
@@ -767,4 +778,103 @@ contract('OpenSTUtility', function(accounts) {
 		})
 	})
 
+  //   describe('MerkleVerificationOfStake', function () {
+
+  //   	var redemptionIntentHash = null;
+  // 		var brandedToken = null;
+  // 		const AMOUNT_ST = new BigNumber(web3.toWei(10, "ether"));
+  // 		const AMOUNT_BT = new BigNumber(AMOUNT_ST*conversionRate);
+
+		// const lock = HashLock.getHashLock();
+  //     	var stakeUnlockHeight = new BigNumber(blockToWaitLong);
+
+  //   	context('BrandedToken', async () => {
+
+		// 		before(async () => {
+		// 			contracts   = await OpenSTUtility_utils.deployOpenSTUtility(artifacts, accounts);
+		// 			openSTUtility = contracts.openSTUtility;
+		// 			checkBtUuid = await openSTUtility.hashUuid.call(symbol, name, chainIdValue, chainIdUtility, openSTUtility.address, conversionRate, conversionRateDecimals);
+		// 			result = await openSTUtility.proposeBrandedToken(symbol, name, conversionRate, conversionRateDecimals);
+		// 			brandedToken = result.logs[0].args._token;
+		// 			await openSTUtility.registerBrandedToken(symbol, name, conversionRate, conversionRateDecimals, accounts[0], brandedToken, checkBtUuid, { from: registrar });
+  //                   stakeUnlockHeight = new BigNumber(blockToWaitLong).plus(web3.eth.blockNumber);
+  //                   stakingIntentHash = await openSTUtility.hashStakingIntent(checkBtUuid, accounts[0], 1, accounts[0],
+  //                       AMOUNT_ST, AMOUNT_BT, stakeUnlockHeight, lock.l);
+		// 			result = await openSTUtility.confirmStakingIntent(checkBtUuid, accounts[0], 1, accounts[0], AMOUNT_ST,
+		// 								AMOUNT_BT, stakeUnlockHeight, lock.l, 1 ,validRLPParentNodes, { from: registrar });
+		// 		});
+
+  //       it('successfully verifies merkle proof of stake', async () => {
+  //           //expirationHeight = await openSTUtility.confirmStakingIntent.call(checkBtUuid, accounts[0], 1, accounts[0], amountST, amountUT, stakeUnlockHeight, lock.l, 1 ,validRLPParentNodes, { from: registrar });
+            
+  //           result = await openSTUtility.merkleVerificationOfStake(accounts[0], 1, accounts[0], validRLPParentNodes, { from: registrar });
+  //           console.log(result)
+
+		// })
+
+    describe('InititateProtocolTransfer', function () {
+
+		const openSTProtocol = accounts[1];
+		const proposedProtocol = accounts[2];
+		const admin = accounts[3];		
+		const PROTOCOL_TRANSFER_BLOCKS_TO_WAIT = 3;
+
+		var result = null;
+		var earliestTransferHeight = null;
+
+		before(async () => {
+			contracts1  = await OpenSTUtility_utils.deployOpenSTUtility(artifacts, accounts);
+			openSTUtility = contracts1.openSTUtility;
+			console.log(openSTUtility, "============")
+	        contracts2 = await ProtocolVersioned_utils.deployProtocolVersioned(artifacts, accounts);
+	        protocolVersioned = contracts2.protocolVersioned;
+	        console.log(protocolVersioned, "=============")
+		})
+
+		it ('successfully initiates protocol transfer', async () => {
+			//assert.ok(Utils.isNullAddress(await protocolVersioned.proposedProtocol.call()));
+			//assert.equal(await openSTUtility.initiateProtocolTransfer.call(protocolVersioned, proposedProtocol, { from: admin}), true);
+			//console.log(openSTUtility);
+			result = await openSTUtility.initiateProtocolTransfer({from: openSTProtocol});
+			consolte.log(result);
+
+			// earliestTransferHeight = await protocolVersioned.earliestTransferHeight.call();
+			// assert.equal(await protocolVersioned.proposedProtocol.call(), proposedProtocol);
+			// assert.equal(await protocolVersioned.openSTProtocol.call(), openSTProtocol);
+			// assert.equal(earliestTransferHeight.toNumber(), (result.receipt.blockNumber + PROTOCOL_TRANSFER_BLOCKS_TO_WAIT));
+			// ProtocolVersioned_utils.checkProtocolTransferInitiatedEvent(result.logs[0], openSTProtocol, proposedProtocol, earliestTransferHeight);
+		})
+	})
+
+    describe('RevokeProtocolTransfer', function () {
+
+		const openSTProtocol = accounts[1];
+		const proposedProtocol = accounts[2];
+		const admin = accounts[3];		
+		const PROTOCOL_TRANSFER_BLOCKS_TO_WAIT = 3;
+
+		var result = null;
+		var earliestTransferHeight = null;
+
+		before(async () => {
+			contracts1  = await OpenSTUtility_utils.deployOpenSTUtility(artifacts, accounts);
+			openSTUtility = contracts1.openSTUtility;
+	        contracts2 = await ProtocolVersioned_utils.deployProtocolVersioned(artifacts, accounts);
+	        protocolVersioned = contracts2.protocolVersioned;
+		})
+
+		it ('successfully revokes protocol transfer', async () => {
+			await protocolVersioned.initiateProtocolTransfer(proposedProtocol, { from: openSTProtocol });
+			// assert.equal(await protocolVersioned.proposedProtocol.call(), proposedProtocol);
+			// assert.equal(await protocolVersioned.revokeProtocolTransfer.call({ from: openSTProtocol }), true);
+			result = await openSTUtility.revokeProtocolTransfer(protocolVersioned, protocolVersioned, { from: admin });
+			console.log(result);
+
+			// assert.ok(Utils.isNullAddress(await protocolVersioned.proposedProtocol.call()));
+			// assert.equal(await protocolVersioned.openSTProtocol.call(), openSTProtocol);
+			// earliestTransferHeight = await protocolVersioned.earliestTransferHeight.call();
+			// assert.equal(earliestTransferHeight.toNumber(), 0);
+			// ProtocolVersioned_utils.checkProtocolTransferRevokedEvent(result.logs[0], openSTProtocol, proposedProtocol);
+		})
+	})
 });
