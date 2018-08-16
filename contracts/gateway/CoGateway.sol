@@ -92,7 +92,7 @@ contract CoGateway {
 
 		require(UtilityTokenInterface(token).mint(mint.beneficiary, mint.amount));
 
-		require(MessageBus(messageBus).progress(msgBox, requestHash, messages[requestHash]));
+		require(MessageBus(messageBus).progressInbox(msgBox, requestHash, messages[requestHash]));
 
 		delete mints[messageHash];
 		delete messages[_stakingIntentHash];

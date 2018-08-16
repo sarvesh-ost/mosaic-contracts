@@ -172,7 +172,7 @@ contract Gateway {
 		stakeRequestAmount = requests[messages.requestHash].amount;
 
 		require(stakeRequestAmount != 0);
-		require(MessageBus(messageBus).progress(msgBox, requestHash, messages[requestHash]));
+		require(MessageBus(messageBus).progressOutbox(msgBox, requestHash, messages[requestHash]));
 
 		require(EIP20Interface(brandedToken).transfer(stakerAddress, stakeRequestAmount));
 
