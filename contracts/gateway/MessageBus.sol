@@ -33,15 +33,17 @@ library MessageBus {
     function declareMessage(
         MessageBox storage _messageBox,
         bytes32 _messageTypeHash,
+        bytes32 _requestHash,
         Message storage _message
     )
     public
     returns (bytes32 messageHash_)
     {
+
         messageHash_ = messageDigest(_messageTypeHash, _message);
 
         //todo intent hash is part of message hash and it's signed how? it's generate here only
-        require(_message.sender == ecrecover(messageHash_, _message.v, _message.r, _message.s));
+        require(_message.sender == ecrecover(_requestHash, _message.v, _message.r, _message.s));
         require(_messageBox.outbox[messageHash_] == MessageStatus.Undeclared);
 
         _messageBox.outbox[messageHash_] = MessageStatus.Declared;
@@ -51,13 +53,15 @@ library MessageBus {
     function confirmMessage(
         MessageBox storage _messageBox,
         bytes32 storage _messageTypeHash,
+        bytes32 _requestHash,
         Message storage _message,
         bytes _rlpEncodedParentNodes,
         uint256 _outboxOffset,
         bytes32 _storageRoot
-    ){
+    )
+    {
         messageHash_ = messageDigest(_messageTypeHash, _message);
-        require(_message.sender == ecrecover(messageHash_, _message.v, _message.r, _message.s));
+        require(_message.sender == ecrecover(_requestHash, _message.v, _message.r, _message.s));
         require(_messageBox.inbox[messageHash_] == MessageStatus.Undeclared);
 
         bytes memory path = ProofLib.bytes32ToBytes(

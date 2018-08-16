@@ -54,6 +54,9 @@ contract Gateway {
 		bytes32 s;
 	}
 
+	bytes32 constant STAKEREQUEST_TYPEHASH = keccak256(
+		abi.encode("StakeRequest(uint256 amount,address beneficiary,address staker,uint256 fee,uint256 nonce,uint8 v,bytes32 r,bytes32 s)"));
+
 	mapping(bytes32 /* requesthash */ => StakeRequest) requests;
 	mapping(address /*staker*/ => uint256) nonces;
 	mapping(bytes32 /*intentHash*/ => MessageBus.Message) messages;
@@ -101,8 +104,15 @@ contract Gateway {
 		uint256 nonce = nonces[msg.sender];
 		nonces[msg.sender] = nonce ++;
 
-		requestHash_ = keccak256(msg.sender, nonce);
-
+		requestHash_ = keccak256(
+			abi.encode(
+				msg.sender,
+				nonce,
+				_amount,
+				_beneficiary,
+				_fee
+			)
+		);
 		requests[requestHash_] = StakeRequest({
 			amount : _amount,
 			beneficiary : _beneficiary,
@@ -138,8 +148,10 @@ contract Gateway {
 		StakeRequest request = requests[requestHash];
 		bytes32 intentHash = keccak256(
 								abi.encode(
-		                        	requestHash,
-									hashLock
+				requestHash,
+				request.amount,
+				request.beneficiary,
+				hashLock
 								)
 							 );
 		messages[intentHash] = MessageBus.Message({
@@ -153,7 +165,7 @@ contract Gateway {
 			sender : request.staker,
 			hashLock : hashLock
 			});
-		messageHash_ = MessageBus(messageBus).declareMessage(msgBox, requestHash, messages[requestHash]);
+		messageHash_ = MessageBus(messageBus).declareMessage(msgBox, STAKEREQUEST_TYPEHASH,requestHash, messages[requestHash]);
 		require(intents[messageHash_] == bytes32(0));
 		intents[messageHash_] = intentHash;
 	}

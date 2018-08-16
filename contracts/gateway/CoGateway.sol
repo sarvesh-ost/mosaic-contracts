@@ -18,14 +18,18 @@ contract CoGateway {
 	struct Mint {
 		uint256 amount;
 		address beneficiary;
+		uint256 fee;
 	}
+
+	bytes32 constant MINTREQUEST_TYPEHASH = keccak256(
+		abi.encode("Mint(uint256 amount,address beneficiary,uint256 fee)"));
 
 	function confirmStakingIntent(
 		address _staker,
 		uint256 _stakerNonce,
 		address _beneficiary,
 		uint256 _amount,
-		uint256 _unlockHeight,
+		uint256 _fee,
 		bytes32 _hashLock,
 		bytes _rlpParentNodes,
 		bytes32 _r,
@@ -40,7 +44,8 @@ contract CoGateway {
 
 		mints[requestHash] = Mint({
 			amount : _amount,
-			beneficiary : _beneficiary
+			beneficiary : _beneficiary,
+			fee : _fee
 			});
 
 		bytes32 stakingIntentHash = keccak256(abi.encodePacked(requestHash, _hashLock));
@@ -66,6 +71,7 @@ contract CoGateway {
 			});
 		MessageBus.confirmMessage(
 			messageBox,
+			MINTREQUEST_TYPEHASH,
 			requestHash,
 			messages[stakingIntentHash],
 			_rlpParentNodes,
@@ -96,7 +102,6 @@ contract CoGateway {
 
 		delete mints[messageHash];
 		delete messages[_stakingIntentHash];
-
 	}
 
 }
