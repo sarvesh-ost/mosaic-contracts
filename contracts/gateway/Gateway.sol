@@ -56,9 +56,11 @@ contract Gateway {
 
 	mapping(bytes32 /* requesthash */ => StakeRequest) requests;
 	mapping(address /*staker*/ => uint256) nonces;
-	mapping(bytes32 /* msg digest*/ => MessageBus.Message) messages;
+	mapping(bytes32 /*intentHash*/ => MessageBus.Message) messages;
+	mapping(bytes32 /*messageDigest*/ => bytes32 /*intent*/) intents;
+
 	address brandedToken;
-	address messageBus;
+	MessageBus messageBus;
 	MessageBus.MessageBox msgBox;
 
 	constructor (
@@ -66,7 +68,7 @@ contract Gateway {
 		uint256 _bounty,
 		bytes32 _uuid,
 		address _brandedToken,
-		address _messageBus
+		MessageBus _messageBus
 	){
 		workers = _workers;
 		bounty = _bounty;
@@ -140,7 +142,8 @@ contract Gateway {
 									hashLock
 								)
 							 );
-		messages[requestHash] = MessageBus.Message({
+		messages[intentHash] = MessageBus.Message({
+			requestHash : requestHash,
 			intentHash : intentHash,
 			nonce : request.nonce,
 			//gasPrice:,
@@ -150,8 +153,32 @@ contract Gateway {
 			sender : request.staker,
 			hashLock : hashLock
 			});
-		messageHash_ = MessageBus.declareMessage(msgBox, requestHash, messages[requestHash]);
+		messageHash_ = MessageBus(messageBus).declareMessage(msgBox, requestHash, messages[requestHash]);
+		require(intents[messageHash_] == bytes32(0));
+		intents[messageHash_] = intentHash;
 	}
 
+	function processStaking(
+		bytes32 _intentHash,
+		bytes32 _unlockSecret
+	)
+	external
+	returns (uint256 stakeRequestAmount)
+	{
+		require(_messageDigest != bytes32(0));
+		require(_unlockSecret != bytes32(0));
+
+		MessageBus.Message storage message = messages[_intentHash];
+		stakeRequestAmount = requests[messages.requestHash].amount;
+
+		require(stakeRequestAmount != 0);
+		require(MessageBus(messageBus).progress(msgBox, requestHash, messages[requestHash]));
+
+		require(EIP20Interface(brandedToken).transfer(stakerAddress, stakeRequestAmount));
+
+		delete requests[messages.requestHash];
+		delete messages[_intentHash];
+		return bytes32(0);
+	}
 
 }
