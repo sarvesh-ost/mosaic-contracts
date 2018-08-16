@@ -23,6 +23,7 @@ const BigNumber       = require('bignumber.js');
 const Utils           = require('../lib/utils.js');
 const HashLock        = require('../lib/hash_lock.js');
 const Registrar_utils = require('./Registrar_utils.js');
+const Gateway_utils = require('./Gateway_utils.js');
 
 ///
 /// Test stories
@@ -47,6 +48,11 @@ const Registrar_utils = require('./Registrar_utils.js');
 /// 	fails to confirm by non-ops
 /// 	successfully confirms
 ///
+/// ProcessStaking
+///		successfully process stakes
+///
+/// ProcessRedeeming
+///	 	successfully process redeems
 
 contract('Registrar', function(accounts) {
 	const chainIdValue  	= 3;
@@ -54,12 +60,12 @@ contract('Registrar', function(accounts) {
 	const ops 		   		= accounts[1];
 	const admin 	   		= accounts[3];
 	const staker	  		= accounts[2];
-  const redeemBeneficiary = accounts[4];
+	const redeemBeneficiary = accounts[4];
 	const symbol 			= "MCC";
 	const name 				= "Member Company Coin";
 	const conversionRateDecimals = 5;
 	const conversionRate	= new BigNumber(10 * (10**conversionRateDecimals)); // Conversion rate => 10
-	const amountST 			= new BigNumber(web3.toWei(2, "ether"));;
+	const amountST 			= new BigNumber(web3.toWei(2, "ether"));
 
 	describe('RegisterBrandedToken for utility chain', async() => {
 		var contracts 		= null;
@@ -239,4 +245,124 @@ contract('Registrar', function(accounts) {
       assert.ok(confirmReturns[1] > BLOCKS_TO_WAIT_SHORT);
 		})
 	})
+
+    describe('processStaking', async () => {
+
+		var contracts 			= null;
+		var valueToken			= null;
+		var registrar 			= null;
+		var openSTUtility 		= null;
+		var openSTValue			= null;
+		var core 				= null;
+		var uuid 				= null;
+		var brandedToken 		= null;
+		var nonce 				= null;
+		var amountUT 	 		= null;
+		var unlockHeight 		= null;
+		var stakingIntentHash 	= null;
+        var validRLPParentNodes = null;
+
+		const lock = HashLock.getHashLock();
+
+		beforeEach (async() => {
+	        contracts   	= await Registrar_utils.deployRegistrar(artifacts, accounts);
+	        valueToken  	= contracts.valueToken;
+			registrar 		= contracts.registrar;
+	        openSTUtility 	= contracts.openSTUtility;
+	        openSTValue 	= contracts.openSTValue;
+      		core 			= contracts.core;
+
+	        uuid 			= await openSTUtility.proposeBrandedToken.call(symbol, name, conversionRate, conversionRateDecimals, { from: staker });
+	        var result 		= await openSTUtility.proposeBrandedToken(symbol, name, conversionRate, conversionRateDecimals, { from: staker });
+	        brandedToken 	= result.logs[0].args._token;
+	        openSTValueAddress = await openSTValue.address;
+
+	        await registrar.addCore(openSTValue.address, core.address, { from: ops });
+			await registrar.registerBrandedToken(openSTUtility.address, symbol, name, conversionRate, conversionRateDecimals, staker, brandedToken, uuid, { from: ops });
+	        await registrar.registerUtilityToken(openSTValue.address, symbol, name, conversionRate, conversionRateDecimals, chainIdUtility, staker, uuid, { from: ops });
+	        await valueToken.approve(openSTValue.address, amountST, { from: staker });
+
+	        stake = await openSTValue.stake(uuid, amountST, staker, lock.l, staker, { from: staker });
+	        nonce = stake.logs[0].args._stakerNonce;
+	        amountUT = stake.logs[0].args._amountUT;
+	        unlockHeight = stake.logs[0].args._unlockHeight;
+	        stakingIntentHash = stake.logs[0].args._stakingIntentHash;
+            validRLPParentNodes =  await  openSTUtility.getMockRLPParentNodes.call(true);
+            console.log(stake, nonce, amountUT, unlockHeight, stakingIntentHash, validRLPParentNodes);
+        })
+
+      it('successfully processes staking intent hash', async () => {
+        result = await registrar.processStaking(openSTValue, stakingIntentHash, lock.s, {from: admin});
+        console.log(result);
+
+      })
+
+      // it('successfully processes when the worker address is not whitelisted', async () => {
+
+      //   let stakeResult = await acceptStakeRequest(stakerAccount, stakeAmount, lock, workerAddress1, true);
+      //   let stakingIntentHash = stakeResult['stakingIntentHash'];
+
+      //   let workerAddress = accounts[10];
+      //   await processStaking(stakingIntentHash, lock.s, workerAddress, true, false);
+
+      // });
+
+      // it('fails to processes when stakingIntentHash is 0', async () => {
+
+      //   await acceptStakeRequest(stakerAccount, stakeAmount, lock, workerAddress1, true);
+      //   await processStaking(0, lock.s, workerAddress1, false, true);
+
+      // });
+
+      // it('fails to processes when stakingIntentHash is invalid', async () => {
+
+      //   await acceptStakeRequest(stakerAccount, stakeAmount, lock, workerAddress1, true);
+      //   await processStaking(beneficiaryAccount, lock.s, workerAddress1, false, true);
+
+      // });
+
+      // it('fails to processes when unlockSecret is 0', async () => {
+
+      //   let stakeResult = await acceptStakeRequest(stakerAccount, stakeAmount, lock, workerAddress1, true);
+      //   let stakingIntentHash = stakeResult['stakingIntentHash'];
+
+      //   await processStaking(stakingIntentHash, 0, workerAddress1, false, true);
+
+      // });
+
+      // it('fails to processes when unlockSecret is invalid', async () => {
+
+      //   let stakeResult = await acceptStakeRequest(stakerAccount, stakeAmount, lock, workerAddress1, true);
+      //   let stakingIntentHash = stakeResult['stakingIntentHash'];
+
+      //   await processStaking(stakingIntentHash, beneficiaryAccount, workerAddress1, false, true);
+
+      // });
+
+      // it('fails to processes when stakeRequest was not accepted', async () => {
+
+      //   let stakingIntentHashParams = await getStakingIntentHashParams(stakerAccount, stakeAmount, lock, workerAddress1);
+      //   await processStaking(stakingIntentHashParams.stakingIntentHash, stakingIntentHashParams.hashLock, workerAddress1, false, true);
+
+      // });
+
+      // it('fails to processes when stakeRequest was rejected', async () => {
+
+      //   let stakingIntentHashParams = await getStakingIntentHashParams(stakerAccount, stakeAmount, lock, workerAddress1);
+
+      //   await rejectStakeRequest(stakerAccount, stakeAmount, 0,  workerAddress1, true);
+      //   await processStaking(stakingIntentHashParams.stakingIntentHash, stakingIntentHashParams.hashLock, workerAddress1, false, true);
+
+      // });
+
+      // it('fails to processes when stakeRequest was reverted', async () => {
+
+      //   let stakingIntentHashParams = await getStakingIntentHashParams(stakerAccount, stakeAmount, lock, workerAddress1);
+
+      //   await revertStakeRequest(stakerAccount, stakeAmount ,true);
+      //   await processStaking(stakingIntentHashParams.stakingIntentHash, stakingIntentHashParams.hashLock, workerAddress1, false, true);
+
+      // });
+
+    })
 })
