@@ -269,8 +269,8 @@ Utils.prototype = {
       ),
     );
   },
+
   /**
-   *
    * @param address Address of ethereum account for which proof needs to be
    *                generated.
    * @param storageKeys Array of keys for a mapping in solidity.
@@ -299,6 +299,22 @@ Utils.prototype = {
         reject(err);
       });
     });
+  },
+
+  storagePath: function(storageIndex, mappings) {
+
+    let path = Buffer.from(web3.utils.padLeft(storageIndex, 64), 'hex');
+
+    if (mappings && mappings.length > 0) {
+      mappings.map(mapping => {
+        path = Buffer.concat([Buffer.from(web3.utils.padLeft(mapping, 64), 'hex'), path])
+      });
+      path = Buffer.from(web3.utils.sha3(path).slice(2), 'hex')
+    }
+
+    path = Buffer.from(web3.utils.sha3(path).slice(2), 'hex');
+
+    return path;
   },
 
   ResultType: ResultType,
