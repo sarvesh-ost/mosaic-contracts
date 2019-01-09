@@ -18,14 +18,18 @@
 //
 // ----------------------------------------------------------------------------
 
+let deployer = require('./deployer.js');
+
 contract('Generate proof', function (accounts) {
 
+  let contractRegistry;
+
   beforeEach(async function () {
-    console.log("beforeEach");
+    contractRegistry = await deployer(accounts);
   });
 
   it('Proof generate test case', async function () {
-    console.log("here");
+
   });
 
 });
