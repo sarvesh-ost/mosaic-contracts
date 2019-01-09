@@ -48,6 +48,19 @@ function assertExpectedMessage(message, error) {
   }
 };
 
+/**
+ *
+ * @param proof Array of nodes representing merkel proof.
+ * @return {string | *} Serialized proof.
+ * @private
+ */
+function _serializeProof(proof){
+
+  let serializedProof = [];
+  proof.forEach(p => serializedProof.push(rlp.decode(p)));
+  return rlp.encode(serializedProof).toString('hex');
+}
+
 /** Tracking Gas Usage. */
 const receipts = [];
 
@@ -256,12 +269,17 @@ Utils.prototype = {
       ),
     );
   },
-
+  /**
+   *
+   * @param address Address of ethereum account for which proof needs to be
+   *                generated.
+   * @param storageKeys Array of keys for a mapping in solidity.
+   * @param blockNumber Block number.
+   * @return {Promise<Proof>}
+   */
   getProof: async (address, storageKeys = [], blockNumber = 'latest') => {
-    let oThis = this;
     let params = [address, storageKeys, blockNumber];
 
-    console.log("params: ", params);
     return new Promise(function (resolve, reject) {
       web3.currentProvider.send({
         jsonrpc: '2.0',
@@ -270,25 +288,17 @@ Utils.prototype = {
         id: new Date().getTime(),
       }, (err, response) => {
         if (response) {
-
           let accountProof = response.result.accountProof;
           let storageProofs = response.result.storageProof;
-          response.result.serializedAccountProof = oThis._serializeProof(accountProof);
+          response.result.serializedAccountProof = _serializeProof(accountProof);
           storageProofs.forEach(sp => {
-            sp.serializedProof = oThis._serializeProof(sp.proof);
+            sp.serializedProof = _serializeProof(sp.proof);
           });
           resolve(response);
         }
         reject(err);
       });
     });
-  },
-
-  _serializeProof: (proof) => {
-
-    let serializedProof = [];
-    proof.forEach(p => serializedProof.push(rlp.decode(p)));
-    return rlp.encode(serializedProof).toString('hex');
   },
 
   ResultType: ResultType,
