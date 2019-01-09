@@ -23,6 +23,7 @@ const web3 = require('./web3.js');
 const hashLock = require("./hash_lock");
 const Assert = require('assert');
 const BN = require('bn.js');
+const rlp = require('rlp');
 
 const ResultType = {
   FAIL: 0,
@@ -254,6 +255,40 @@ Utils.prototype = {
         structDescriptor,
       ),
     );
+  },
+
+  getProof: async (address, storageKeys = [], blockNumber = 'latest') => {
+    let oThis = this;
+    let params = [address, storageKeys, blockNumber];
+
+    console.log("params: ", params);
+    return new Promise(function (resolve, reject) {
+      web3.currentProvider.send({
+        jsonrpc: '2.0',
+        method: 'eth_getProof',
+        params: params,
+        id: new Date().getTime(),
+      }, (err, response) => {
+        if (response) {
+
+          let accountProof = response.result.accountProof;
+          let storageProofs = response.result.storageProof;
+          response.result.serializedAccountProof = oThis._serializeProof(accountProof);
+          storageProofs.forEach(sp => {
+            sp.serializedProof = oThis._serializeProof(sp.proof);
+          });
+          resolve(response);
+        }
+        reject(err);
+      });
+    });
+  },
+
+  _serializeProof: (proof) => {
+
+    let serializedProof = [];
+    proof.forEach(p => serializedProof.push(rlp.decode(p)));
+    return rlp.encode(serializedProof).toString('hex');
   },
 
   ResultType: ResultType,
