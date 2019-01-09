@@ -58,6 +58,8 @@ async function deployer(accounts) {
       burner
     );
 
+  await gateway.activateGateway(coGateway.address, {from: owner});
+
   return {
     gateway: gateway,
     coGateway: coGateway,
