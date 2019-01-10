@@ -11,7 +11,6 @@ async function redeem(contractRegistry, redeemRequest) {
       {from: contractRegistry.owner}
     );
 
-
   await utilityToken.approve(
     coGateway.address,
     redeemRequest.amount,

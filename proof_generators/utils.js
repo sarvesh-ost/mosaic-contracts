@@ -13,7 +13,7 @@ class Utils {
     Utils.writeToFile(DATA_PATH + '/stake.json', stakeRequest,);
   }
 
-  generateRedeemTestData(redeemRequest) {
+  generateRedeemTestData(redeemRequest, fileName) {
 
     redeemRequest.storageRoot = redeemRequest.proof.result.storageHash;
     redeemRequest.storageProof = redeemRequest.proof.result.storageProof[0].serializedProof;
@@ -27,7 +27,7 @@ class Utils {
     redeemRequest.anchor = this.contractRegistry.anchor.address;
     redeemRequest.owner = this.contractRegistry.owner;
 
-    Utils.writeToFile(DATA_PATH + '/redeem.json', JSON.stringify(redeemRequest, null, 2));
+    Utils.writeToFile(DATA_PATH + fileName, JSON.stringify(redeemRequest, null, 2));
   };
 
   /**

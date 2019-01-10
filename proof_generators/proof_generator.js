@@ -27,6 +27,7 @@ let deployer = require('./deployer.js');
 let Stake = require('./stake');
 let redeem = require('./redeem.js');
 let confirmRedeem = require('./confirm_redeem');
+let progressRedeem = require('./progress_redeem');
 let OUTBOX_OFFSET = "7";
 
 const STAKE_DATA_PATH = 'test/data/stake.json';
@@ -52,40 +53,40 @@ function writeToFile(location, content) {
 
 }
 
-contract('stake and mint ', function (accounts) {
-
-  let contractRegistry, stakeParams, generatedHashLock, proofUtils;
-
-  beforeEach(async function () {
-
-    contractRegistry = await deployer(accounts);
-
-    generatedHashLock = utils.generateHashLock();
-
-    stakeParams = {
-      amount: new BN(100000000),
-      beneficiary: accounts[3],
-      gasPrice: new BN(1),
-      gasLimit: new BN(10000),
-      nonce: new BN(1),
-      hashLock: generatedHashLock.l,
-      staker: accounts[0]
-    };
-    proofUtils = new ProofUtils(contractRegistry);
-
-  });
-
-  it('Generate proof data for "stake" ', async function () {
-
-    let stakeProofGenerator = new Stake(contractRegistry);
-    let proofData = await stakeProofGenerator.generateProof(stakeParams);
-
-    // write the proof data in to the files.
-    writeToFile(STAKE_DATA_PATH, JSON.stringify(proofData));
-
-  });
-
-});
+// contract('stake and mint ', function (accounts) {
+//
+//   let contractRegistry, stakeParams, generatedHashLock, proofUtils;
+//
+//   beforeEach(async function () {
+//
+//     contractRegistry = await deployer(accounts);
+//
+//     generatedHashLock = utils.generateHashLock();
+//
+//     stakeParams = {
+//       amount: new BN(100000000),
+//       beneficiary: accounts[3],
+//       gasPrice: new BN(1),
+//       gasLimit: new BN(10000),
+//       nonce: new BN(1),
+//       hashLock: generatedHashLock.l,
+//       staker: accounts[0]
+//     };
+//     proofUtils = new ProofUtils(contractRegistry);
+//
+//   });
+//
+//   it('Generate proof data for "stake" ', async function () {
+//
+//     let stakeProofGenerator = new Stake(contractRegistry);
+//     let proofData = await stakeProofGenerator.generateProof(stakeParams);
+//
+//     // write the proof data in to the files.
+//     writeToFile(STAKE_DATA_PATH, JSON.stringify(proofData));
+//
+//   });
+//
+// });
 
 contract('Redeem and un-stake ', function (accounts) {
 
@@ -103,7 +104,7 @@ contract('Redeem and un-stake ', function (accounts) {
       gasLimit: new BN(10),
       nonce: new BN(1),
       hashLock: hashLockObj.l,
-      secret: hashLockObj.s,
+      unlockSecret: hashLockObj.s,
       redeemer: accounts[0],
       beneficiary: accounts[0],
     };
@@ -126,10 +127,20 @@ contract('Redeem and un-stake ', function (accounts) {
     redeemRequest.blockNumber = response.blockNumber;
     redeemRequest.messageHash = response.messageHash;
     redeemRequest.proof = proof;
-
-    proofUtils.generateRedeemTestData(redeemRequest);
+    proofUtils.generateRedeemTestData(redeemRequest, '/redeem.json');
     await confirmRedeem(contractRegistry, redeemRequest);
+    response = await progressRedeem(contractRegistry, redeemRequest);
+
+    proof = await utils.getProof(
+      contractRegistry.coGateway.address,
+      [path]
+    );
+    redeemRequest.blockNumber = response.blockNumber;
+    redeemRequest.proof = proof;
+
+    proofUtils.generateRedeemTestData(redeemRequest, '/progress_redeem.json');
+
   });
 
-
 });
+

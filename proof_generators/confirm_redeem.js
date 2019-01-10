@@ -18,8 +18,6 @@ async function confirmRedeem(contractRegistry, confirmRedeemRequest) {
     confirmRedeemRequest.hashLock,
     '0x'+confirmRedeemRequest.storageProof,
   );
-
-  console.log("tx  ", JSON.stringify(tx));
 }
 
 module.exports = confirmRedeem;

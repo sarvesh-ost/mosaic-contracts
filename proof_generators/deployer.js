@@ -59,6 +59,8 @@ async function deployer(accounts) {
       burner
     );
 
+  await mockUtilityToken.setCoGateway(coGateway.address, {from: owner});
+
   await gateway.activateGateway(coGateway.address, {from: owner});
 
   return {
