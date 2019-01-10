@@ -22,6 +22,7 @@ const BN = require("bn.js");
 
 let deployer = require('./deployer.js');
 let redeem = require('./redeem.js');
+let confirmRedeem = require('./confirm_redeem');
 let OUTBOX_OFFSET = "7";
 contract('stake and mint ', function (accounts) {
 
@@ -63,6 +64,7 @@ contract('Redeem and un-stake ', function (accounts) {
   it('redeem and un-stake', async function () {
 
     let response = await redeem(contractRegistry, redeemRequest);
+    console.log("response", response);
     let path = Utils.storagePath(
       OUTBOX_OFFSET,
       [response.messageHash]
@@ -72,6 +74,17 @@ contract('Redeem and un-stake ', function (accounts) {
       [path]
     );
     console.log("redeem proof  ", JSON.stringify(proof));
+
+    let storageRoot = proof.result.storageHash;
+
+    redeemRequest.blockNumber = response.blockNumber;
+    redeemRequest.storageRoot = storageRoot;
+    redeemRequest.storageProof = proof.result.storageProof[0].serializedProof;
+
+    console.log("Gateway ADdresss", contractRegistry.gateway.address);
+    console.log("co-gateway ADdresss", contractRegistry.coGateway.address);
+    await confirmRedeem(contractRegistry, redeemRequest);
   });
+
 
 });

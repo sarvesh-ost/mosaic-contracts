@@ -27,11 +27,11 @@ async function redeem(contractRegistry, redeemRequest) {
     redeemRequest.hashLock,
     {from: redeemRequest.redeemer, value: contractRegistry.bounty},
   );
-
+  let blockNumber = tx.receipt.blockNumber;
   let event = EventDecoder.getEvents(tx, coGateway);
   let eventData = event.RedeemIntentDeclared;
 
-  return {messageHash: eventData._messageHash}
+  return {messageHash: eventData._messageHash, blockNumber: blockNumber}
 }
 
 module.exports = redeem;
