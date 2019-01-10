@@ -18,6 +18,7 @@
 //
 // ----------------------------------------------------------------------------
 const utils = require("../test/test_lib/utils.js");
+const ProofUtils = require('./utils.js');
 const BN = require("bn.js");
 const fs = require('fs');
 const path = require('path');
@@ -53,7 +54,7 @@ function writeToFile(location, content) {
 
 contract('stake and mint ', function (accounts) {
 
-  let contractRegistry, stakeParams, generatedHashLock;
+  let contractRegistry, stakeParams, generatedHashLock, proofUtils;
 
   beforeEach(async function () {
 
@@ -70,6 +71,7 @@ contract('stake and mint ', function (accounts) {
       hashLock: generatedHashLock.l,
       staker: accounts[0]
     };
+    proofUtils = new ProofUtils(contractRegistry);
 
   });
 
@@ -85,10 +87,9 @@ contract('stake and mint ', function (accounts) {
 
 });
 
-
 contract('Redeem and un-stake ', function (accounts) {
 
-  let contractRegistry, redeemRequest;
+  let contractRegistry, redeemRequest, proofUtils;
 
   beforeEach(async function () {
 
@@ -106,30 +107,27 @@ contract('Redeem and un-stake ', function (accounts) {
       redeemer: accounts[0],
       beneficiary: accounts[0],
     };
+    proofUtils = new ProofUtils(contractRegistry);
   });
 
   it('redeem and un-stake', async function () {
 
     let response = await redeem(contractRegistry, redeemRequest);
-    console.log("response", response);
     let path = utils.storagePath(
       OUTBOX_OFFSET,
       [response.messageHash]
     );
+
     let proof = await utils.getProof(
       contractRegistry.coGateway.address,
       [path]
     );
-    console.log("redeem proof  ", JSON.stringify(proof));
-
-    let storageRoot = proof.result.storageHash;
 
     redeemRequest.blockNumber = response.blockNumber;
-    redeemRequest.storageRoot = storageRoot;
-    redeemRequest.storageProof = proof.result.storageProof[0].serializedProof;
+    redeemRequest.messageHash = response.messageHash;
+    redeemRequest.proof = proof;
 
-    console.log("Gateway ADdresss", contractRegistry.gateway.address);
-    console.log("co-gateway ADdresss", contractRegistry.coGateway.address);
+    proofUtils.generateRedeemTestData(redeemRequest);
     await confirmRedeem(contractRegistry, redeemRequest);
   });
 
