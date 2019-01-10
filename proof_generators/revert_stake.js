@@ -25,7 +25,7 @@ const EventsDecoder = require('../test/test_lib/event_decoder');
 // This is the position of MessageBox defined in GatewayBase.sol
 const MESSAGE_BOX_OFFSET = '7';
 
-class ProgressStake {
+class RevertStake {
 
   /**
    * @param {Object} contractRegistry All the deployed contracts
@@ -35,33 +35,35 @@ class ProgressStake {
   }
 
   /**
-   * Generates the proof data for progress stake.
+   * Generates the proof data for revert stake.
    *
    * @param {object} params.
-   * @param {string} options.messageHash Message hash of stake request.
-   * @param {string} options.unlockSecret Unlock secret to progress stake.
-   * @param {string} options.facilitator Facilitator address for progress stake.
+   * @param {string} options.messageHash Message hash of revert stake request.
+   * @param {string} options.staker Staker address for revert stake.
    *
    * @returns {JSON} The Json object containing the proof data.
    */
   async generateProof(params) {
 
     let messageHash = params.messageHash;
-    let unlockSecret = params.unlockSecret;
-    let facilitator = params.facilitator;
+    let staker = params.staker;
 
     let gateway = this.contractRegistry.gateway;
 
-    let result = await gateway.progressStake.call(
+    let baseToken = this.contractRegistry.baseToken;
+    let bounty = await gateway.bounty.call();
+    let penalty = bounty.muln(1.5);
+
+    await baseToken.approve(gateway.address, penalty, {from: staker });
+
+    let result = await gateway.revertStake.call(
       messageHash,
-      unlockSecret,
-      { from: facilitator },
+      { from: staker },
     );
 
-    let tx = await gateway.progressStake(
+    let tx = await gateway.revertStake(
       messageHash,
-      unlockSecret,
-      { from: facilitator },
+      { from: staker },
     );
 
     let events = EventsDecoder.getEvents(tx, gateway);
@@ -88,19 +90,19 @@ class ProgressStake {
     // Add return params in proof json data.
     let returnParams = {};
     returnParams.staker = result.staker_;
-    returnParams.stake_amount_ = result.stakeAmount_.toString(10);
+    returnParams.amount = result.amount_.toString(10);
+    returnParams.staker_nonce = result.stakerNonce_.toString(10);
     proofData.return_params = returnParams;
 
     // Add events in proof json data.
     proofData.event_data = events;
 
-    // Add stake params in proof json data.
-    let progress_stake_params = {};
-    progress_stake_params.messageHash = messageHash;
-    progress_stake_params.unlock_secret = unlockSecret;
-    progress_stake_params.facilitator = facilitator;
+    // Add revert stake params in proof json data.
+    let revert_stake_params = {};
+    revert_stake_params.messageHash = messageHash;
+    revert_stake_params.staker = staker;
 
-    proofData.progress_stake_params = progress_stake_params;
+    proofData.revert_stake_params = revert_stake_params;
 
     return proofData;
 
@@ -108,4 +110,4 @@ class ProgressStake {
 
 }
 
-module.exports = ProgressStake;
+module.exports = RevertStake;

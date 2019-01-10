@@ -26,6 +26,7 @@ const path = require('path');
 let deployer = require('./deployer.js');
 let Stake = require('./stake');
 let ProgressStake = require('./progress_stake');
+let RevertStake = require('./revert_stake');
 let redeem = require('./redeem.js');
 let confirmRedeem = require('./confirm_redeem');
 let progressRedeem = require('./progress_redeem');
@@ -34,6 +35,7 @@ let INBOX_MESSAGE_BOX_OFFSET = "8";
 
 const STAKE_DATA_PATH = 'test/data/stake.json';
 const PROGRESS_STAKE_DATA_PATH = 'test/data/progress_stake.json';
+const REVERT_STAKE_DATA_PATH = 'test/data/revert_stake.json';
 
 /**
  * Write proof data in the file.
@@ -111,10 +113,34 @@ contract('stake and mint ', function (accounts) {
 
     let proofData = {};
     proofData.stake = stakeProofData;
-    proofData.progressStake = progressStakeProofData;
+    proofData.progress_stake = progressStakeProofData;
 
     // Write the proof data in to the files.
     writeToFile(PROGRESS_STAKE_DATA_PATH, JSON.stringify(proofData));
+
+  });
+
+  it('Generate proof data for "revertStake"', async function () {
+
+    let stakeProofGenerator = new Stake(contractRegistry);
+    let stakeProofData = await stakeProofGenerator.generateProof(stakeParams);
+
+    let revertStakeParams = {
+      messageHash: stakeProofData.return_params.messageHash,
+      staker: stakeParams.staker,
+    };
+
+    console.log("revertStakeParams: ",revertStakeParams);
+
+    let revertStakeProofGenerator = new RevertStake(contractRegistry);
+    let revertStakeProofData = await revertStakeProofGenerator.generateProof(revertStakeParams);
+
+    let proofData = {};
+    proofData.stake = stakeProofData;
+    proofData.revert_stake = revertStakeProofData;
+
+    // Write the proof data in to the files.
+    writeToFile(REVERT_STAKE_DATA_PATH, JSON.stringify(proofData));
 
   });
 

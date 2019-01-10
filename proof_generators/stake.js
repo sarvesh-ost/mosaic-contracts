@@ -139,7 +139,7 @@ class Stake {
     returnParams.messageHash = messageHash;
 
     proofData.return_params = returnParams;
-    proofData.event_data = JSON.stringify(events);
+    proofData.event_data = events;
 
     // Add constructor params in proof json data.
     let constructor_params = {};
