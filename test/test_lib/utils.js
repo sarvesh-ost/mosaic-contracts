@@ -303,16 +303,16 @@ Utils.prototype = {
 
   storagePath: function(storageIndex, mappings) {
 
-    let path = Buffer.from(web3.utils.padLeft(storageIndex, 64), 'hex');
+    let path = '';
 
     if (mappings && mappings.length > 0) {
       mappings.map(mapping => {
-        path = Buffer.concat([Buffer.from(web3.utils.padLeft(mapping, 64), 'hex'), path])
+        path = `${path}${web3.utils.padLeft(mapping, 64)}`;
       });
-      path = Buffer.from(web3.utils.sha3(path).slice(2), 'hex')
     }
 
-    path = Buffer.from(web3.utils.sha3(path).slice(2), 'hex');
+    path = `${path}${web3.utils.padLeft(storageIndex, 64)}`;
+    path = web3.utils.sha3(path, {"encoding": "hex"});
 
     return path;
   },
