@@ -20,4 +20,5 @@ node_modules/.bin/ganache-cli \
     --account="0x8fbbbaceff30d4eea3e2ffa2dfedc3c053f78c1f53103e4ddc31309e6b1d5eb7,10000000000000000000000000000000" \
     --account="0x8fbbbaceff30d4eea3e2ffa2dfedc3c053f78c1f53103e4ddc31309e6b1d5eb8,10000000000000000000000000000000" \
     --account="0x8fbbbaceff30d4eea3e2ffa2dfedc3c053f78c1f53103e4ddc31309e6b1d5eb9,0" \
+    --account="0xd6cfe5bbe73cece3d1c7564984dfe618c170e0d41fc7dbe72dfaab5b8b3bfbb1,10000000000000000000000000000000" \
     --gasLimit 12000000

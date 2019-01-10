@@ -17,22 +17,69 @@
 // http://www.simpletoken.org/
 //
 // ----------------------------------------------------------------------------
-const Utils = require("../test/test_lib/utils.js");
+const utils = require("../test/test_lib/utils.js");
 const BN = require("bn.js");
+const fs = require('fs');
+const path = require('path');
 
 let deployer = require('./deployer.js');
+let Stake = require('./stake');
 let redeem = require('./redeem.js');
 let confirmRedeem = require('./confirm_redeem');
 let OUTBOX_OFFSET = "7";
-contract('stake and mint ', function (accounts) {
 
-  let contractRegistry;
+const STAKE_DATA_PATH = 'test/data/stake.json';
 
-  beforeEach(async function () {
-    // contractRegistry = await deployer(accounts);
+/**
+ * Write proof data in the file.
+ *
+ * @param {string} location Location where the file will be written.
+ * @param {string} content The content that will be written in the file.
+ *
+ */
+function writeToFile(location, content) {
+
+  let rootDir= `${__dirname}/../`;
+
+  const pathLocation = path.join(rootDir, location);
+
+  fs.writeFile(pathLocation, content, function(err) {
+    if(err) {
+      throw err;
+    }
   });
 
-  it('Proof generate test case', async function () {
+}
+
+contract('stake and mint ', function (accounts) {
+
+  let contractRegistry, stakeParams, generatedHashLock;
+
+  beforeEach(async function () {
+
+    contractRegistry = await deployer(accounts);
+
+    generatedHashLock = utils.generateHashLock();
+
+    stakeParams = {
+      amount: new BN(100000000),
+      beneficiary: accounts[3],
+      gasPrice: new BN(1),
+      gasLimit: new BN(10000),
+      nonce: new BN(1),
+      hashLock: generatedHashLock.l,
+      staker: accounts[0]
+    };
+
+  });
+
+  it('Generate proof data for "stake" ', async function () {
+
+    let stakeProofGenerator = new Stake(contractRegistry);
+    let proofData = await stakeProofGenerator.generateProof(stakeParams);
+
+    // write the proof data in to the files.
+    writeToFile(STAKE_DATA_PATH, JSON.stringify(proofData));
 
   });
 
@@ -47,7 +94,7 @@ contract('Redeem and un-stake ', function (accounts) {
 
     contractRegistry = await deployer(accounts);
 
-    let hashLockObj = Utils.generateHashLock();
+    let hashLockObj = utils.generateHashLock();
 
     redeemRequest = {
       amount: new BN(1000),
@@ -65,11 +112,11 @@ contract('Redeem and un-stake ', function (accounts) {
 
     let response = await redeem(contractRegistry, redeemRequest);
     console.log("response", response);
-    let path = Utils.storagePath(
+    let path = utils.storagePath(
       OUTBOX_OFFSET,
       [response.messageHash]
     );
-    let proof = await Utils.getProof(
+    let proof = await utils.getProof(
       contractRegistry.coGateway.address,
       [path]
     );
