@@ -10,6 +10,7 @@ const MockToken = artifacts.require("MockToken");
 const MockUtilityToken = artifacts.require("MockUtilityToken");
 
 async function deployer(accounts) {
+
   let owner = accounts[0];
   let worker = accounts[1];
   let remoteChainId = new BN(1410);
@@ -69,7 +70,8 @@ async function deployer(accounts) {
     mockUtilityToken: mockUtilityToken,
     anchor: anchor,
     owner: owner,
-    worker: worker
+    worker: worker,
+    bounty: bounty
   }
 }
 

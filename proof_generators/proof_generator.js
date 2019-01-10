@@ -17,19 +17,61 @@
 // http://www.simpletoken.org/
 //
 // ----------------------------------------------------------------------------
+const Utils = require("../test/test_lib/utils.js");
+const BN = require("bn.js");
 
 let deployer = require('./deployer.js');
-
-contract('Generate proof', function (accounts) {
+let redeem = require('./redeem.js');
+let OUTBOX_OFFSET = "7";
+contract('stake and mint ', function (accounts) {
 
   let contractRegistry;
 
   beforeEach(async function () {
-    contractRegistry = await deployer(accounts);
+    // contractRegistry = await deployer(accounts);
   });
 
   it('Proof generate test case', async function () {
 
+  });
+
+});
+
+
+contract('Redeem and un-stake ', function (accounts) {
+
+  let contractRegistry, redeemRequest;
+
+  beforeEach(async function () {
+
+    contractRegistry = await deployer(accounts);
+
+    let hashLockObj = Utils.generateHashLock();
+
+    redeemRequest = {
+      amount: new BN(1000),
+      gasPrice: new BN(10),
+      gasLimit: new BN(10),
+      nonce: new BN(1),
+      hashLock: hashLockObj.l,
+      secret: hashLockObj.s,
+      redeemer: accounts[0],
+      beneficiary: accounts[0],
+    };
+  });
+
+  it('redeem and un-stake', async function () {
+
+    let response = await redeem(contractRegistry, redeemRequest);
+    let path = Utils.storagePath(
+      OUTBOX_OFFSET,
+      [response.messageHash]
+    );
+    let proof = await Utils.getProof(
+      contractRegistry.coGateway.address,
+      [path]
+    );
+    console.log("redeem proof  ", JSON.stringify(proof));
   });
 
 });
