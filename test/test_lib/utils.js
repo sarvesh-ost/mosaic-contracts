@@ -58,7 +58,7 @@ function _serializeProof(proof){
 
   let serializedProof = [];
   proof.forEach(p => serializedProof.push(rlp.decode(p)));
-  return rlp.encode(serializedProof).toString('hex');
+  return `0x${rlp.encode(serializedProof).toString('hex')}`;
 }
 
 /** Tracking Gas Usage. */

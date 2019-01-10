@@ -27,6 +27,7 @@ let deployer = require('./deployer.js');
 let Stake = require('./stake');
 let ProgressStake = require('./progress_stake');
 let RevertStake = require('./revert_stake');
+let ConfirmStakeIntent = require('./confirm_stake_intent');
 let redeem = require('./redeem.js');
 let confirmRedeem = require('./confirm_redeem');
 let progressRedeem = require('./progress_redeem');
@@ -36,6 +37,7 @@ let INBOX_MESSAGE_BOX_OFFSET = "8";
 const STAKE_DATA_PATH = 'test/data/stake.json';
 const PROGRESS_STAKE_DATA_PATH = 'test/data/progress_stake.json';
 const REVERT_STAKE_DATA_PATH = 'test/data/revert_stake.json';
+const CONFIRM_STAKE_INTENT_DATA_PATH = 'test/data/confirm_stake_intent.json';
 
 /**
  * Write proof data in the file.
@@ -58,7 +60,28 @@ function writeToFile(location, content) {
 
 }
 
-contract('stake and mint ', function (accounts) {
+/**
+ * Get address of all deployed contracts.
+ *
+ * @param {Object} contractRegistry Object containing all contracts.
+ *
+ * @returns {JSON} A json object containing the contract address.
+ */
+function getContractAddresses(contractRegistry) {
+
+  let addresses = {};
+
+  Object.keys(contractRegistry).map(function(key, index) {
+    if (contractRegistry[key].address) {
+      addresses[key] = contractRegistry[key].address;
+    }
+  });
+
+  return addresses;
+
+}
+
+contract('Stake and Mint ', function (accounts) {
 
   let contractRegistry, stakeParams, generatedHashLock, proofUtils;
 
@@ -78,17 +101,17 @@ contract('stake and mint ', function (accounts) {
       unlockSecret: generatedHashLock.s,
       staker: accounts[0]
     };
-    proofUtils = new ProofUtils(contractRegistry);
 
   });
 
-
   it('Generate proof data for "stake"', async function () {
 
+    let contractAddresses = getContractAddresses(contractRegistry);
     let stakeProofGenerator = new Stake(contractRegistry);
     let stakeProofData = await stakeProofGenerator.generateProof(stakeParams);
 
     let proofData = {};
+    proofData.contracts = contractAddresses;
     proofData.stake = stakeProofData;
 
     // write the proof data in to the files.
@@ -99,6 +122,7 @@ contract('stake and mint ', function (accounts) {
 
   it('Generate proof data for "progressStake"', async function () {
 
+    let contractAddresses = getContractAddresses(contractRegistry);
     let stakeProofGenerator = new Stake(contractRegistry);
     let stakeProofData = await stakeProofGenerator.generateProof(stakeParams);
 
@@ -109,11 +133,17 @@ contract('stake and mint ', function (accounts) {
     };
 
     let progressStakeProofGenerator = new ProgressStake(contractRegistry);
-    let progressStakeProofData = await progressStakeProofGenerator.generateProof(progressStakeParams);
+    let progressStakeProofData =
+      await progressStakeProofGenerator.generateProof(progressStakeParams);
+
+    stakeParams.nonce = stakeParams.nonce.addn(1);
+    let nextStakeProofData = await stakeProofGenerator.generateProof(stakeParams);
 
     let proofData = {};
+    proofData.contracts = contractAddresses;
     proofData.stake = stakeProofData;
     proofData.progress_stake = progressStakeProofData;
+    proofData.next_stake = nextStakeProofData;
 
     // Write the proof data in to the files.
     writeToFile(PROGRESS_STAKE_DATA_PATH, JSON.stringify(proofData));
@@ -122,6 +152,7 @@ contract('stake and mint ', function (accounts) {
 
   it('Generate proof data for "revertStake"', async function () {
 
+    let contractAddresses = getContractAddresses(contractRegistry);
     let stakeProofGenerator = new Stake(contractRegistry);
     let stakeProofData = await stakeProofGenerator.generateProof(stakeParams);
 
@@ -130,17 +161,73 @@ contract('stake and mint ', function (accounts) {
       staker: stakeParams.staker,
     };
 
-    console.log("revertStakeParams: ",revertStakeParams);
-
     let revertStakeProofGenerator = new RevertStake(contractRegistry);
-    let revertStakeProofData = await revertStakeProofGenerator.generateProof(revertStakeParams);
+    let revertStakeProofData =
+      await revertStakeProofGenerator.generateProof(revertStakeParams);
+
+    stakeParams.nonce = stakeParams.nonce.addn(1);
+    let nextStakeProofData = await stakeProofGenerator.generateProof(stakeParams);
 
     let proofData = {};
+    proofData.contracts = contractAddresses;
     proofData.stake = stakeProofData;
     proofData.revert_stake = revertStakeProofData;
+    proofData.next_stake = nextStakeProofData;
 
     // Write the proof data in to the files.
     writeToFile(REVERT_STAKE_DATA_PATH, JSON.stringify(proofData));
+
+  });
+
+  it('Generate proof data for "confirmStakeIntent"', async function () {
+
+    let contractAddresses = getContractAddresses(contractRegistry);
+    let stakeProofGenerator = new Stake(contractRegistry);
+    let stakeProofData = await stakeProofGenerator.generateProof(stakeParams);
+
+    stakeParams = {
+      amount: new BN(100000000),
+      beneficiary: accounts[3],
+      gasPrice: new BN(1),
+      gasLimit: new BN(10000),
+      nonce: new BN(1),
+      hashLock: generatedHashLock.l,
+      unlockSecret: generatedHashLock.s,
+      staker: accounts[0],
+    };
+
+    let confirmStakeIntentProofGenerator = new ConfirmStakeIntent(contractRegistry);
+
+    await confirmStakeIntentProofGenerator.setStorageProof(
+      stakeProofData.proof_data.block_number,
+      stakeProofData.proof_data.storageHash,
+    );
+
+    let confirmStakeIntentParams = {
+      staker: stakeParams.staker,
+      stakerNonce: stakeParams.nonce,
+      beneficiary: stakeParams.beneficiary,
+      amount: stakeParams.amount,
+      gasPrice: stakeParams.gasPrice,
+      gasLimit: stakeParams.gasLimit,
+      hashLock: stakeParams.hashLock,
+      blockHeight: stakeProofData.proof_data.block_number,
+      rlpParentNodes: stakeProofData.proof_data.storageProof[0].serializedProof,
+      unlockSecret: stakeParams.unlockSecret,
+      facilitator: stakeParams.staker,
+    };
+
+
+    let confirmStakeIntentProofData =
+      await confirmStakeIntentProofGenerator.generateProof(confirmStakeIntentParams);
+
+    let proofData = {};
+    proofData.contracts = contractAddresses;
+    proofData.stake = stakeProofData;
+    proofData.confirm_stake_intent = confirmStakeIntentProofData;
+
+    // Write the proof data in to the files.
+    writeToFile(CONFIRM_STAKE_INTENT_DATA_PATH, JSON.stringify(proofData));
 
   });
 
