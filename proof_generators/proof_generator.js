@@ -28,7 +28,8 @@ let Stake = require('./stake');
 let redeem = require('./redeem.js');
 let confirmRedeem = require('./confirm_redeem');
 let progressRedeem = require('./progress_redeem');
-let OUTBOX_OFFSET = "7";
+let OUTBOX_MESSAGE_BOX_OFFSET = "7";
+let INBOX_MESSAGE_BOX_OFFSET = "8";
 
 const STAKE_DATA_PATH = 'test/data/stake.json';
 
@@ -114,27 +115,39 @@ contract('Redeem and un-stake ', function (accounts) {
   it('redeem and un-stake', async function () {
 
     let response = await redeem(contractRegistry, redeemRequest);
-    let path = utils.storagePath(
-      OUTBOX_OFFSET,
+    let outboxPath = utils.storagePath(
+      OUTBOX_MESSAGE_BOX_OFFSET,
       [response.messageHash]
     );
 
     let proof = await utils.getProof(
       contractRegistry.coGateway.address,
-      [path]
+      [outboxPath]
     );
 
     redeemRequest.blockNumber = response.blockNumber;
     redeemRequest.messageHash = response.messageHash;
     redeemRequest.proof = proof;
     proofUtils.generateRedeemTestData(redeemRequest, '/redeem.json');
+
     await confirmRedeem(contractRegistry, redeemRequest);
-    
+
+    let inboxPath = utils.storagePath(
+      INBOX_MESSAGE_BOX_OFFSET
+        [response.messageHash]
+    );
+
+    proof = await utils.getProof(
+      contractRegistry.gateway.address,
+      [inboxPath]
+    );
+    redeemRequest.proof = proof;
+    proofUtils.generateRedeemTestData(redeemRequest, '/confirm_redeem.json');
     response = await progressRedeem(contractRegistry, redeemRequest);
 
     proof = await utils.getProof(
       contractRegistry.coGateway.address,
-      [path]
+      [outboxPath]
     );
     redeemRequest.blockNumber = response.blockNumber;
     redeemRequest.proof = proof;
