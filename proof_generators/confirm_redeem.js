@@ -7,7 +7,7 @@ async function confirmRedeem(contractRegistry, confirmRedeemRequest) {
     confirmRedeemRequest.storageRoot
   );
 
-  let tx = await gateway.confirmRedeemIntent(
+  await gateway.confirmRedeemIntent(
     confirmRedeemRequest.redeemer,
     confirmRedeemRequest.nonce,
     confirmRedeemRequest.beneficiary,
@@ -16,7 +16,7 @@ async function confirmRedeem(contractRegistry, confirmRedeemRequest) {
     confirmRedeemRequest.gasLimit,
     confirmRedeemRequest.blockNumber,
     confirmRedeemRequest.hashLock,
-    '0x'+confirmRedeemRequest.storageProof,
+    confirmRedeemRequest.storageProof,
   );
 }
 
