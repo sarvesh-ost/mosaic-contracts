@@ -25,6 +25,7 @@ const path = require('path');
 
 let deployer = require('./deployer.js');
 let Stake = require('./stake');
+let ProgressStake = require('./progress_stake');
 let redeem = require('./redeem.js');
 let confirmRedeem = require('./confirm_redeem');
 let progressRedeem = require('./progress_redeem');
@@ -32,6 +33,7 @@ let OUTBOX_MESSAGE_BOX_OFFSET = "7";
 let INBOX_MESSAGE_BOX_OFFSET = "8";
 
 const STAKE_DATA_PATH = 'test/data/stake.json';
+const PROGRESS_STAKE_DATA_PATH = 'test/data/progress_stake.json';
 
 /**
  * Write proof data in the file.
@@ -71,19 +73,48 @@ contract('stake and mint ', function (accounts) {
       gasLimit: new BN(10000),
       nonce: new BN(1),
       hashLock: generatedHashLock.l,
+      unlockSecret: generatedHashLock.s,
       staker: accounts[0]
     };
     proofUtils = new ProofUtils(contractRegistry);
 
   });
 
-  it('Generate proof data for "stake" ', async function () {
+
+  it('Generate proof data for "stake"', async function () {
 
     let stakeProofGenerator = new Stake(contractRegistry);
-    let proofData = await stakeProofGenerator.generateProof(stakeParams);
+    let stakeProofData = await stakeProofGenerator.generateProof(stakeParams);
+
+    let proofData = {};
+    proofData.stake = stakeProofData;
 
     // write the proof data in to the files.
     writeToFile(STAKE_DATA_PATH, JSON.stringify(proofData));
+
+  });
+
+
+  it('Generate proof data for "progressStake"', async function () {
+
+    let stakeProofGenerator = new Stake(contractRegistry);
+    let stakeProofData = await stakeProofGenerator.generateProof(stakeParams);
+
+    let progressStakeParams = {
+      messageHash: stakeProofData.return_params.messageHash,
+      unlockSecret: stakeParams.unlockSecret,
+      facilitator: stakeParams.staker,
+    };
+
+    let progressStakeProofGenerator = new ProgressStake(contractRegistry);
+    let progressStakeProofData = await progressStakeProofGenerator.generateProof(progressStakeParams);
+
+    let proofData = {};
+    proofData.stake = stakeProofData;
+    proofData.progressStake = progressStakeProofData;
+
+    // Write the proof data in to the files.
+    writeToFile(PROGRESS_STAKE_DATA_PATH, JSON.stringify(proofData));
 
   });
 

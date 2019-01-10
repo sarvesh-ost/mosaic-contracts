@@ -20,6 +20,7 @@
 
 const web3 = require('../test/test_lib/web3');
 const utils = require('../test/test_lib/utils');
+const EventsDecoder = require('../test/test_lib/event_decoder');
 
 // This is the position of MessageBox defined in GatewayBase.sol
 const MESSAGE_BOX_OFFSET = '7';
@@ -56,6 +57,7 @@ class Stake {
     let nonce = params.nonce;
     let hashLock = params.hashLock;
     let staker = params.staker;
+    let unlockSecret = params.unlockSecret;
 
 
     let token = this.contractRegistry.mockToken;
@@ -89,7 +91,7 @@ class Stake {
       { from: staker },
     );
 
-    await gateway.stake(
+    let tx = await gateway.stake(
       amount,
       beneficiary,
       gasPrice,
@@ -98,6 +100,8 @@ class Stake {
       hashLock,
       { from: staker },
     );
+
+    let events = EventsDecoder.getEvents(tx, gateway);
 
     let block = await web3.eth.getBlock('latest');
 
@@ -126,9 +130,16 @@ class Stake {
     stake_params.gas_limit = gasLimit.toString(10);
     stake_params.nonce = nonce.toString(10);
     stake_params.hash_lock = hashLock;
+    stake_params.unlock_secret = unlockSecret;
     stake_params.staker = staker;
 
     proofData.stake_params = stake_params;
+
+    let returnParams = {};
+    returnParams.messageHash = messageHash;
+
+    proofData.return_params = returnParams;
+    proofData.event_data = JSON.stringify(events);
 
     // Add constructor params in proof json data.
     let constructor_params = {};
