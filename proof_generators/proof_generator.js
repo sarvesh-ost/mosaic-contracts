@@ -353,7 +353,7 @@ contract('Stake and Mint ', function (accounts) {
     writeToFile(PROGRESS_MINT_DATA_PATH, JSON.stringify(proofData));
 
   });
-*/
+
   it('Generate proof data for "confirmRevertStakeIntent"', async function () {
 
     let contractAddresses = getContractAddresses(contractRegistry);
