@@ -23,9 +23,9 @@ const utils = require('../test/test_lib/utils');
 const EventsDecoder = require('../test/test_lib/event_decoder');
 
 // This is the position of MessageBox defined in GatewayBase.sol
-const OUTBOX_MESSAGE_BOX_OFFSET = '7';
+const INBOX_MESSAGE_BOX_OFFSET = '8';
 
-class RevertStake {
+class ProgressMint {
 
   /**
    * @param {Object} contractRegistry All the deployed contracts
@@ -35,48 +35,46 @@ class RevertStake {
   }
 
   /**
-   * Generates the proof data for revert stake.
+   * Generates the proof data for progress mint.
    *
    * @param {object} params.
-   * @param {string} options.messageHash Message hash of revert stake request.
-   * @param {string} options.staker Staker address for revert stake.
+   * @param {string} options.messageHash Message hash for progress mint.
+   * @param {string} options.unlockSecret Unlock secret for progress mint.
+   * @param {string} options.facilitator Facilitator address for progress mint.
    *
    * @returns {JSON} The Json object containing the proof data.
    */
   async generateProof(params) {
 
     let messageHash = params.messageHash;
-    let staker = params.staker;
+    let unlockSecret = params.unlockSecret;
+    let facilitator = params.facilitator;
 
-    let gateway = this.contractRegistry.gateway;
+    let coGateway = this.contractRegistry.coGateway;
 
-    let baseToken = this.contractRegistry.baseToken;
-    let bounty = await gateway.bounty.call();
-    let penalty = bounty.muln(1.5);
-
-    await baseToken.approve(gateway.address, penalty, {from: staker });
-
-    let result = await gateway.revertStake.call(
+    let result = await coGateway.progressMint.call(
       messageHash,
-      { from: staker },
+      unlockSecret,
+      { from: facilitator },
     );
 
-    let tx = await gateway.revertStake(
+    let tx = await coGateway.progressMint(
       messageHash,
-      { from: staker },
+      unlockSecret,
+      { from: facilitator },
     );
 
-    let events = EventsDecoder.getEvents(tx, gateway);
+    let events = EventsDecoder.getEvents(tx, coGateway);
 
     let block = await web3.eth.getBlock('latest');
 
     let storageKey = utils.storagePath(
-      OUTBOX_MESSAGE_BOX_OFFSET,
+      INBOX_MESSAGE_BOX_OFFSET,
       [messageHash]
     ).toString('hex');
 
     let proof = await utils.getProof(
-      gateway.address,
+      coGateway.address,
       [storageKey],
       web3.utils.toHex(block.number)
     );
@@ -89,20 +87,22 @@ class RevertStake {
 
     // Add return params in proof json data.
     let returnParams = {};
-    returnParams.staker = result.staker_;
-    returnParams.amount = result.amount_.toString(10);
-    returnParams.staker_nonce = result.stakerNonce_.toString(10);
+    returnParams.beneficiary = result.beneficiary_;
+    returnParams.stake_amount = result.stakeAmount_.toString(10);
+    returnParams.minted_amount = result.mintedAmount_.toString(10);
+    returnParams.reward_amount = result.rewardAmount_.toString(10);
     proofData.return_params = returnParams;
 
     // Add events in proof json data.
     proofData.event_data = events;
 
-    // Add revert stake params in proof json data.
-    let revert_stake_params = {};
-    revert_stake_params.messageHash = messageHash;
-    revert_stake_params.staker = staker;
+    // Add stake params in proof json data.
+    let progress_mint_params = {};
+    progress_mint_params.messageHash = messageHash;
+    progress_mint_params.unlock_secret = unlockSecret;
+    progress_mint_params.facilitator = facilitator;
 
-    proofData.revert_stake_params = revert_stake_params;
+    proofData.progress_mint_params = progress_mint_params;
 
     return proofData;
 
@@ -110,4 +110,4 @@ class RevertStake {
 
 }
 
-module.exports = RevertStake;
+module.exports = ProgressMint;

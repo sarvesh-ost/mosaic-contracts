@@ -28,6 +28,8 @@ let Stake = require('./stake');
 let ProgressStake = require('./progress_stake');
 let RevertStake = require('./revert_stake');
 let ConfirmStakeIntent = require('./confirm_stake_intent');
+let ProgressMint = require('./progress_mint');
+let ConfirmRevertStakeIntent = require('./confirm_revert_stake_intent');
 let redeem = require('./redeem.js');
 let confirmRedeem = require('./confirm_redeem');
 let progressRedeem = require('./progress_redeem');
@@ -38,6 +40,8 @@ const STAKE_DATA_PATH = 'test/data/stake.json';
 const PROGRESS_STAKE_DATA_PATH = 'test/data/progress_stake.json';
 const REVERT_STAKE_DATA_PATH = 'test/data/revert_stake.json';
 const CONFIRM_STAKE_INTENT_DATA_PATH = 'test/data/confirm_stake_intent.json';
+const PROGRESS_MINT_DATA_PATH = 'test/data/progress_mint.json';
+const CONFIRM_REVERT_STAKE_INTENT_DATA_PATH = 'test/data/confirm_revert_stake_intent.json';
 
 /**
  * Write proof data in the file.
@@ -231,6 +235,199 @@ contract('Stake and Mint ', function (accounts) {
 
   });
 
+  it('Generate proof data for "confirmStakeIntent"', async function () {
+
+    let contractAddresses = getContractAddresses(contractRegistry);
+    let stakeProofGenerator = new Stake(contractRegistry);
+    let stakeProofData = await stakeProofGenerator.generateProof(stakeParams);
+
+    stakeParams = {
+      amount: new BN(100000000),
+      beneficiary: accounts[3],
+      gasPrice: new BN(1),
+      gasLimit: new BN(10000),
+      nonce: new BN(1),
+      hashLock: generatedHashLock.l,
+      unlockSecret: generatedHashLock.s,
+      staker: accounts[0],
+    };
+
+    let confirmStakeIntentProofGenerator = new ConfirmStakeIntent(contractRegistry);
+
+    await confirmStakeIntentProofGenerator.setStorageProof(
+      stakeProofData.proof_data.block_number,
+      stakeProofData.proof_data.storageHash,
+    );
+
+    let confirmStakeIntentParams = {
+      staker: stakeParams.staker,
+      stakerNonce: stakeParams.nonce,
+      beneficiary: stakeParams.beneficiary,
+      amount: stakeParams.amount,
+      gasPrice: stakeParams.gasPrice,
+      gasLimit: stakeParams.gasLimit,
+      hashLock: stakeParams.hashLock,
+      blockHeight: stakeProofData.proof_data.block_number,
+      rlpParentNodes: stakeProofData.proof_data.storageProof[0].serializedProof,
+      unlockSecret: stakeParams.unlockSecret,
+      facilitator: stakeParams.staker,
+    };
+
+
+    let confirmStakeIntentProofData =
+      await confirmStakeIntentProofGenerator.generateProof(confirmStakeIntentParams);
+
+    let proofData = {};
+    proofData.contracts = contractAddresses;
+    proofData.stake = stakeProofData;
+    proofData.confirm_stake_intent = confirmStakeIntentProofData;
+
+    // Write the proof data in to the files.
+    writeToFile(CONFIRM_STAKE_INTENT_DATA_PATH, JSON.stringify(proofData));
+
+  });
+
+  it('Generate proof data for "progressMint"', async function () {
+
+    let contractAddresses = getContractAddresses(contractRegistry);
+    let stakeProofGenerator = new Stake(contractRegistry);
+    let stakeProofData = await stakeProofGenerator.generateProof(stakeParams);
+
+    stakeParams = {
+      amount: new BN(100000000),
+      beneficiary: accounts[3],
+      gasPrice: new BN(1),
+      gasLimit: new BN(10000),
+      nonce: new BN(1),
+      hashLock: generatedHashLock.l,
+      unlockSecret: generatedHashLock.s,
+      staker: accounts[0],
+    };
+
+    let confirmStakeIntentProofGenerator = new ConfirmStakeIntent(contractRegistry);
+
+    await confirmStakeIntentProofGenerator.setStorageProof(
+      stakeProofData.proof_data.block_number,
+      stakeProofData.proof_data.storageHash,
+    );
+
+    let confirmStakeIntentParams = {
+      staker: stakeParams.staker,
+      stakerNonce: stakeParams.nonce,
+      beneficiary: stakeParams.beneficiary,
+      amount: stakeParams.amount,
+      gasPrice: stakeParams.gasPrice,
+      gasLimit: stakeParams.gasLimit,
+      hashLock: stakeParams.hashLock,
+      blockHeight: stakeProofData.proof_data.block_number,
+      rlpParentNodes: stakeProofData.proof_data.storageProof[0].serializedProof,
+      unlockSecret: stakeParams.unlockSecret,
+      facilitator: stakeParams.staker,
+    };
+
+
+    let confirmStakeIntentProofData =
+      await confirmStakeIntentProofGenerator.generateProof(confirmStakeIntentParams);
+
+    let progressMintParams = {
+      messageHash: stakeProofData.return_params.messageHash,
+      unlockSecret: stakeParams.unlockSecret,
+      facilitator: stakeParams.staker,
+    };
+
+    let progressMintProofGenerator = new ProgressMint(contractRegistry);
+    let progressMintProofData =
+      await progressMintProofGenerator.generateProof(progressMintParams);
+
+
+    let proofData = {};
+    proofData.contracts = contractAddresses;
+    proofData.stake = stakeProofData;
+    proofData.confirm_stake_intent = confirmStakeIntentProofData;
+    proofData.progress_mint = progressMintProofData;
+
+    // Write the proof data in to the files.
+    writeToFile(PROGRESS_MINT_DATA_PATH, JSON.stringify(proofData));
+
+  });
+*/
+  it('Generate proof data for "confirmRevertStakeIntent"', async function () {
+
+    let contractAddresses = getContractAddresses(contractRegistry);
+    let stakeProofGenerator = new Stake(contractRegistry);
+    let stakeProofData = await stakeProofGenerator.generateProof(stakeParams);
+
+
+    let confirmStakeIntentProofGenerator = new ConfirmStakeIntent(contractRegistry);
+
+    await confirmStakeIntentProofGenerator.setStorageProof(
+      stakeProofData.proof_data.block_number,
+      stakeProofData.proof_data.storageHash,
+    );
+
+    let confirmStakeIntentParams = {
+      staker: stakeParams.staker,
+      stakerNonce: stakeParams.nonce,
+      beneficiary: stakeParams.beneficiary,
+      amount: stakeParams.amount,
+      gasPrice: stakeParams.gasPrice,
+      gasLimit: stakeParams.gasLimit,
+      hashLock: stakeParams.hashLock,
+      blockHeight: stakeProofData.proof_data.block_number,
+      rlpParentNodes: stakeProofData.proof_data.storageProof[0].serializedProof,
+      unlockSecret: stakeParams.unlockSecret,
+      facilitator: stakeParams.staker,
+    };
+
+
+    let confirmStakeIntentProofData =
+      await confirmStakeIntentProofGenerator.generateProof(confirmStakeIntentParams);
+
+
+    let revertStakeParams = {
+      messageHash: stakeProofData.return_params.messageHash,
+      staker: stakeParams.staker,
+    };
+
+    let revertStakeProofGenerator = new RevertStake(contractRegistry);
+    let revertStakeProofData =
+      await revertStakeProofGenerator.generateProof(revertStakeParams);
+
+
+    console.log("revertStakeProofData: ",revertStakeProofData);
+
+    let confirmRevertStakeIntentParams = {
+      messageHash: stakeProofData.return_params.messageHash,
+      blockHeight: revertStakeProofData.proof_data.block_number,
+      rlpParentNodes: revertStakeProofData.proof_data.storageProof[0].serializedProof,
+      facilitator: stakeParams.staker,
+    };
+
+    let confirmRevertStakeIntentProofGenerator
+      = new ConfirmRevertStakeIntent(contractRegistry);
+
+    await confirmRevertStakeIntentProofGenerator.setStorageProof(
+      revertStakeProofData.proof_data.block_number,
+      revertStakeProofData.proof_data.storageHash,
+    );
+
+    let confirmRevertStakeIntentProofData =
+      await confirmRevertStakeIntentProofGenerator.generateProof(
+        confirmRevertStakeIntentParams
+      );
+
+    let proofData = {};
+    proofData.contracts = contractAddresses;
+    proofData.stake = stakeProofData;
+    proofData.confirm_stake_intent = confirmStakeIntentProofData;
+    proofData.revert_stake = revertStakeProofData;
+    proofData.confirm_revert_stake_intent = confirmRevertStakeIntentProofData;
+
+    // Write the proof data in to the files.
+    writeToFile(CONFIRM_REVERT_STAKE_INTENT_DATA_PATH, JSON.stringify(proofData));
+
+  });
+
 });
 
 contract('Redeem and un-stake ', function (accounts) {
@@ -301,4 +498,3 @@ contract('Redeem and un-stake ', function (accounts) {
   });
 
 });
-

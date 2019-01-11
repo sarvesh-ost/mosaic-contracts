@@ -23,7 +23,7 @@ const utils = require('../test/test_lib/utils');
 const EventsDecoder = require('../test/test_lib/event_decoder');
 
 // This is the position of MessageBox defined in GatewayBase.sol
-const MESSAGE_BOX_OFFSET = '7';
+const INBOX_MESSAGE_BOX_OFFSET = '8';
 
 class ConfirmStakeIntent {
 
@@ -107,7 +107,7 @@ class ConfirmStakeIntent {
     let block = await web3.eth.getBlock('latest');
 
     let storageKey = utils.storagePath(
-      MESSAGE_BOX_OFFSET,
+      INBOX_MESSAGE_BOX_OFFSET,
       [messageHash]
     ).toString('hex');
 
