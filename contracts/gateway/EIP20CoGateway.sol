@@ -622,14 +622,10 @@ contract EIP20CoGateway is GatewayBase {
             "msg.value must match the penalty amount"
         );
 
-        require(
-            messageBox.outbox[_messageHash] ==
-            MessageBus.MessageStatus.Undeclared,
-            "Message status must be Undeclared"
+        MessageBus.declareRevocationMessage(
+          messageBox,
+          message
         );
-        // Update the message outbox status to declared.
-        messageBox.outbox[_messageHash] =
-        MessageBus.MessageStatus.DeclaredRevocation;
 
         redeemer_ = message.sender;
         redeemerNonce_ = message.nonce;
