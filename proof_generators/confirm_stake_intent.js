@@ -54,8 +54,6 @@ class ConfirmStakeIntent {
    */
   async generateProof(params) {
 
-    console.log("params: ", params);
-
     let coGateway = this.contractRegistry.coGateway;
 
     let staker = params.staker;
@@ -83,8 +81,6 @@ class ConfirmStakeIntent {
       { from: facilitator },
     );
 
-    console.log("messageHash: ", messageHash);
-
     let tx = await coGateway.confirmStakeIntent(
       staker,
       stakerNonce,
@@ -98,11 +94,7 @@ class ConfirmStakeIntent {
       { from: facilitator },
     );
 
-    console.log("tx: ", tx);
-
     let events = EventsDecoder.getEvents(tx, coGateway);
-
-    console.log("events: ", events);
 
     let block = await web3.eth.getBlock('latest');
 

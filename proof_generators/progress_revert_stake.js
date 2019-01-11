@@ -23,9 +23,9 @@ const utils = require('../test/test_lib/utils');
 const EventsDecoder = require('../test/test_lib/event_decoder');
 
 // This is the position of MessageBox defined in GatewayBase.sol
-const INBOX_MESSAGE_BOX_OFFSET = '8';
+const OUTBOX_MESSAGE_BOX_OFFSET = '7';
 
-class ConfirmRevertStakeIntent {
+class ProgressRevertStake {
 
   /**
    * @param {Object} contractRegistry All the deployed contracts
@@ -35,7 +35,7 @@ class ConfirmRevertStakeIntent {
   }
 
   /**
-   * Generates the proof data for confirm revert stake intent.
+   * Generates the proof data for progress revert stake.
    *
    * @param {object} params.
    * @param {string} options.messageHash Message hash for confirm revert
@@ -45,42 +45,42 @@ class ConfirmRevertStakeIntent {
    * @param {string} options.rlpParentNodes RLP encoded proof data.
    * @param {string} options.facilitator Facilitator address for progress mint.
    *
-   * @returns {JSON} The JSON object containing the proof data.
+   * @returns {JSON} The Json object containing the proof data.
    */
   async generateProof(params) {
-
-    let coGateway = this.contractRegistry.coGateway;
 
     let messageHash = params.messageHash;
     let blockHeight = params.blockHeight;
     let rlpParentNodes = params.rlpParentNodes;
     let facilitator = params.facilitator;
 
-    let result = await coGateway.confirmRevertStakeIntent.call(
+    let gateway = this.contractRegistry.gateway;
+
+    let result = await gateway.progressRevertStake.call(
       messageHash,
       blockHeight,
       rlpParentNodes,
       { from: facilitator },
     );
 
-    let tx = await coGateway.confirmRevertStakeIntent(
+    let tx = await gateway.progressRevertStake(
       messageHash,
       blockHeight,
       rlpParentNodes,
       { from: facilitator },
     );
 
-    let events = EventsDecoder.getEvents(tx, coGateway);
+    let events = EventsDecoder.getEvents(tx, gateway);
 
     let block = await web3.eth.getBlock('latest');
 
     let storageKey = utils.storagePath(
-      INBOX_MESSAGE_BOX_OFFSET,
+      OUTBOX_MESSAGE_BOX_OFFSET,
       [messageHash]
     ).toString('hex');
 
     let proof = await utils.getProof(
-      coGateway.address,
+      gateway.address,
       [storageKey],
       web3.utils.toHex(block.number)
     );
@@ -91,22 +91,24 @@ class ConfirmRevertStakeIntent {
     proofData.proof_data.state_root = block.stateRoot;
     proofData.proof_data.block_number = block.number;
 
-    // Add confirm stake params in proof json data.
-    let confirm_revert_stake_params = {};
-    confirm_revert_stake_params.messageHash = messageHash;
-    confirm_revert_stake_params.blockHeight = blockHeight.toString(10);
-    confirm_revert_stake_params.rlpParentNodes = rlpParentNodes;
-    confirm_revert_stake_params.facilitator = facilitator;
-
-    proofData.confirm_revert_stake_params = confirm_revert_stake_params;
-
+    // Add return params in proof json data.
     let returnParams = {};
     returnParams.staker = result.staker_;
-    returnParams.stakerNonce = result.stakerNonce_.toString(10);
+    returnParams.staker_nonce = result.stakerNonce_.toString(10);
     returnParams.amount = result.amount_.toString(10);
-
     proofData.return_params = returnParams;
+
+    // Add events in proof json data.
     proofData.event_data = events;
+
+    // Add stake params in proof json data.
+    let progress_revert_stake_params = {};
+    progress_revert_stake_params.messageHash = messageHash;
+    progress_revert_stake_params.blockHeight = blockHeight.toString(10);
+    progress_revert_stake_params.rlpParentNodes = rlpParentNodes;
+    progress_revert_stake_params.facilitator = facilitator;
+
+    proofData.progress_revert_stake_params = progress_revert_stake_params;
 
     return proofData;
 
@@ -120,10 +122,10 @@ class ConfirmRevertStakeIntent {
    * @param {string} storageRoot Storage root hash for storage proof.
    */
   async setStorageProof(blockHeight, storageRoot) {
-    let coGateway = this.contractRegistry.coGateway;
-    await coGateway.setStorageRoot(blockHeight, storageRoot,);
+    let gateway = this.contractRegistry.gateway;
+    await gateway.setStorageRoot(blockHeight, storageRoot,);
   }
 
 }
 
-module.exports = ConfirmRevertStakeIntent;
+module.exports = ProgressRevertStake;
