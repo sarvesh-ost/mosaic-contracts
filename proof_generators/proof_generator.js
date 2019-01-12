@@ -36,6 +36,8 @@ let confirmRedeem = require('./confirm_redeem');
 let progressRedeem = require('./progress_redeem');
 let progressUnstake = require('./progress_unstake');
 let revertRedeem = require('./revert_redeem');
+let confirmRevertRedeemIntent = require('./confirm_revert_redeem_intent');
+let progressRevertRedeem = require('./progress_revert_redeem');
 
 let OUTBOX_MESSAGE_BOX_OFFSET = "7";
 let INBOX_MESSAGE_BOX_OFFSET = "8";
@@ -545,7 +547,7 @@ contract('Redeem and un-stake ', function (accounts) {
   });
 
   it('redeem and un-stake', async function () {
-
+    /* Redeem */
     let response = await redeem(contractRegistry, redeemRequest);
     let outboxPath = utils.storagePath(
       OUTBOX_MESSAGE_BOX_OFFSET,
@@ -562,7 +564,8 @@ contract('Redeem and un-stake ', function (accounts) {
     redeemRequest.proof = proof;
     proofUtils.generateRedeemTestData(redeemRequest, '/redeem.json');
 
-    await confirmRedeem(contractRegistry, redeemRequest);
+    /* Confirm Redeem */
+    response = await confirmRedeem(contractRegistry, redeemRequest);
 
     let inboxPath = utils.storagePath(
       INBOX_MESSAGE_BOX_OFFSET,
@@ -573,8 +576,13 @@ contract('Redeem and un-stake ', function (accounts) {
       contractRegistry.gateway.address,
       [inboxPath]
     );
+
+    redeemRequest.blockNumber = response.blockNumber;
+    redeemRequest.messageHash = response.messageHash;
     redeemRequest.proof = proof;
     proofUtils.generateRedeemTestData(redeemRequest, '/confirm_redeem.json');
+
+    /* Progress Redeem */
     response = await progressRedeem(contractRegistry, redeemRequest);
 
     proof = await utils.getProof(
@@ -586,6 +594,7 @@ contract('Redeem and un-stake ', function (accounts) {
 
     proofUtils.generateRedeemTestData(redeemRequest, '/progress_redeem.json');
 
+    /* Progress Unstake */
     response = await  progressUnstake(contractRegistry, redeemRequest);
 
     proof = await utils.getProof(
@@ -597,9 +606,14 @@ contract('Redeem and un-stake ', function (accounts) {
 
     proofUtils.generateRedeemTestData(redeemRequest, '/progress_unstake.json');
 
+    /* Redeem */
     redeemRequest.nonce = new BN(2);
     response = await redeem(contractRegistry, redeemRequest);
 
+    outboxPath = utils.storagePath(
+      OUTBOX_MESSAGE_BOX_OFFSET,
+      [response.messageHash]
+    );
     proof = await utils.getProof(
       contractRegistry.coGateway.address,
       [outboxPath]
@@ -609,7 +623,26 @@ contract('Redeem and un-stake ', function (accounts) {
     redeemRequest.proof = proof;
     proofUtils.generateRedeemTestData(redeemRequest, '/redeem_2.json');
 
-    await revertRedeem(contractRegistry, redeemRequest);
+    /* Confirm Redeem */
+    response = await confirmRedeem(contractRegistry, redeemRequest);
+
+    inboxPath = utils.storagePath(
+      INBOX_MESSAGE_BOX_OFFSET,
+      [response.messageHash]
+    );
+
+    proof = await utils.getProof(
+      contractRegistry.gateway.address,
+      [inboxPath]
+    );
+
+    redeemRequest.blockNumber = response.blockNumber;
+    redeemRequest.messageHash = response.messageHash;
+    redeemRequest.proof = proof;
+    proofUtils.generateRedeemTestData(redeemRequest, '/confirm_redeem_2.json');
+
+    /* Revert Redeem */
+    response = await revertRedeem(contractRegistry, redeemRequest);
 
     proof = await utils.getProof(
       contractRegistry.coGateway.address,
@@ -619,7 +652,35 @@ contract('Redeem and un-stake ', function (accounts) {
     redeemRequest.messageHash = response.messageHash;
     redeemRequest.proof = proof;
 
-    proofUtils.generateRedeemTestData(redeemRequest, '/revert_redeem.json');
+    proofUtils.generateRedeemTestData(redeemRequest, '/revert_redeem_2.json');
+
+    /* Confirm Revert Redeem Intent */
+    response = await confirmRevertRedeemIntent(contractRegistry, redeemRequest);
+
+    utils.storagePath(
+      INBOX_MESSAGE_BOX_OFFSET,
+      [response.messageHash]
+    );
+
+    proof = await utils.getProof(
+      contractRegistry.gateway.address,
+      [inboxPath]
+    );
+    redeemRequest.proof = proof;
+    proofUtils.generateRedeemTestData(redeemRequest, '/confirm_revert_redeem_intent_2.json');
+
+    /* Progress Revert Redeem */
+    response = await progressRevertRedeem(contractRegistry, redeemRequest);
+
+    proof = await utils.getProof(
+      contractRegistry.coGateway.address,
+      [outboxPath]
+    );
+    redeemRequest.blockNumber = response.blockNumber;
+    redeemRequest.messageHash = response.messageHash;
+    redeemRequest.proof = proof;
+
+    proofUtils.generateRedeemTestData(redeemRequest, '/progress_revert_redeem.json');
   });
 
 });

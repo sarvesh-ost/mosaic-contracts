@@ -1,3 +1,5 @@
+const EventDecoder = require("../test/test_lib/event_decoder.js");
+
 async function confirmRedeem(contractRegistry, confirmRedeemRequest) {
 
   let gateway = contractRegistry.gateway;
@@ -7,7 +9,7 @@ async function confirmRedeem(contractRegistry, confirmRedeemRequest) {
     confirmRedeemRequest.storageRoot
   );
 
-  await gateway.confirmRedeemIntent(
+  let tx = await gateway.confirmRedeemIntent(
     confirmRedeemRequest.redeemer,
     confirmRedeemRequest.nonce,
     confirmRedeemRequest.beneficiary,
@@ -18,6 +20,12 @@ async function confirmRedeem(contractRegistry, confirmRedeemRequest) {
     confirmRedeemRequest.hashLock,
     confirmRedeemRequest.storageProof,
   );
+
+  let blockNumber = tx.receipt.blockNumber;
+  let event = EventDecoder.getEvents(tx, gateway);
+  let eventData = event.RedeemIntentConfirmed;
+
+  return {messageHash: eventData._messageHash, blockNumber: blockNumber}
 }
 
 module.exports = confirmRedeem;

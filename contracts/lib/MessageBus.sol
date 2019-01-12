@@ -683,6 +683,9 @@ library MessageBus {
         pure
         returns(bytes32 storagePath_)
     {
+        if(_offset > 0){
+            _structPosition = _structPosition + _offset;
+        }
         bytes memory indexBytes = BytesLib.leftPad(
             bytes32ToBytes(
                 bytes32(uint256(_structPosition))
@@ -691,23 +694,13 @@ library MessageBus {
         bytes memory keyBytes = BytesLib.leftPad(bytes32ToBytes(_key));
         bytes memory path = BytesLib.concat(keyBytes, indexBytes);
 
-        bytes32 structPath = keccak256(
+        storagePath_ = keccak256(
             abi.encodePacked(
                 keccak256(
                     abi.encodePacked(path)
                 )
             )
         );
-
-        if (_offset == 0) {
-            return structPath;
-        }
-        bytes32 storagePath;
-        uint8 offset = _offset;
-        assembly {
-            storagePath := add(structPath, offset)
-        }
-        storagePath_ = keccak256(abi.encodePacked(storagePath));
     }
 
     /**
