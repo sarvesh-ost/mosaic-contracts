@@ -742,7 +742,6 @@ contract EIP20Gateway is GatewayBase {
      *                      facilitator while initiating the redeem
      *
      * @return redeemer_ Redeemer address
-     * @return beneficiary_ Address to which the tokens will be transferred.
      * @return redeemAmount_ Total amount for which the redeem was
      *                       initiated. The reward amount is deducted from the
      *                       total redeem amount and is given to the
@@ -923,12 +922,12 @@ contract EIP20Gateway is GatewayBase {
             storageRoot
         );
 
-        // delete the unstake data
-        delete unstakes[_messageHash];
-
         redeemer_ = message.sender;
         redeemerNonce_ = message.nonce;
         amount_ = unstakes[_messageHash].amount;
+
+        // delete the unstake data
+        delete unstakes[_messageHash];
 
         // Emit RevertRedeemIntentConfirmed event
         emit RevertRedeemIntentConfirmed(
