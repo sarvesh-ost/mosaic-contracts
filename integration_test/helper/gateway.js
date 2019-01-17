@@ -19,6 +19,7 @@
 // ----------------------------------------------------------------------------
 
 const EventDecoder = require('../../test/test_lib/event_decoder');
+const Utils = require('../../test/test_lib/utils');
 
 class Gateway {
 
@@ -98,6 +99,10 @@ class Gateway {
       { from: staker },
     );
 
+    Utils.logReceipt(tx.receipt, "Gateway.Stake()");
+    Utils.printGasStatistics();
+    Utils.clearReceipts();
+
     let events = EventDecoder.getEvents(tx, this.gateway);
 
     let returnedValue = {};
@@ -141,6 +146,9 @@ class Gateway {
       { from: facilitator },
     );
 
+    Utils.logReceipt(tx.receipt, "Gateway.progressStake()");
+    Utils.printGasStatistics();
+    Utils.clearReceipts();
     let events = EventDecoder.getEvents(tx, this.gateway);
 
     // let returnedValue = {};

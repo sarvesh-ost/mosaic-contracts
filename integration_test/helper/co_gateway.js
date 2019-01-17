@@ -19,6 +19,7 @@
 // ----------------------------------------------------------------------------
 
 const EventDecoder = require('../../test/test_lib/event_decoder');
+const Utils = require('../../test/test_lib/utils');
 
 class CoGateway {
 
@@ -300,6 +301,10 @@ class CoGateway {
       { from: facilitator },
     );
 
+    Utils.logReceipt(tx.receipt, "Cogateway.ConfirmStakeIntent()");
+    Utils.printGasStatistics();
+    Utils.clearReceipts();
+
     let events = EventDecoder.getEvents(tx, this.coGateway);
 
     let returnedValue = {};
@@ -340,6 +345,10 @@ class CoGateway {
       unlockSecret,
       { from: facilitator },
     );
+
+    Utils.logReceipt(tx.receipt, "Cogateway.progressMint()");
+    Utils.printGasStatistics();
+    Utils.clearReceipts();
 
     let events = EventDecoder.getEvents(tx, this.coGateway);
 

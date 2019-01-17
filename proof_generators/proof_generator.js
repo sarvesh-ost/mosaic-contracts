@@ -87,7 +87,7 @@ contract('Stake and Mint ', function (accounts) {
       gasPrice: new BN(1),
       gasLimit: new BN(10000),
       nonce: new BN(0),
-      staker: accounts[0]
+      staker: accounts[0],
     };
 
   });
@@ -194,7 +194,7 @@ contract('Stake and Mint ', function (accounts) {
 
   });
 
-  it('Generate proof data for "Stake revoked"', async function () {
+/*  it('Generate proof data for "Stake revoked"', async function () {
 
     let gateway = new Gateway(contractRegistry);
     let coGateway = new CoGateway(contractRegistry);
@@ -319,11 +319,11 @@ contract('Stake and Mint ', function (accounts) {
       );
     }
 
-  });
+  });*/
 
 });
 
-contract('Redeem and Un-stake ', function (accounts) {
+/*contract('Redeem and Un-stake ', function (accounts) {
 
   let contractRegistry, redeemParams, generatedHashLock;
 
@@ -572,4 +572,4 @@ contract('Redeem and Un-stake ', function (accounts) {
     }
   });
 
-});
+});*/

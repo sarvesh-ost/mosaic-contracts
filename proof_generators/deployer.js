@@ -78,6 +78,11 @@ async function deployer(accounts) {
     burner
   );
 
+  let receipt = await web3.eth.getTransactionReceipt(gateway.transactionHash);
+  Utils.logReceipt(receipt, "Gateway deployment");
+  Utils.printGasStatistics();
+  Utils.clearReceipts();
+
   let coGateway = await CoGateway.new(
     mockToken.address,
     mockUtilityToken.address,
@@ -88,9 +93,20 @@ async function deployer(accounts) {
     burner
   );
 
-  await mockUtilityToken.setCoGateway(coGateway.address, {from: owner});
+  receipt = await web3.eth.getTransactionReceipt(coGateway.transactionHash);
+  Utils.logReceipt(receipt, "Co-Gateway deployment");
+  Utils.printGasStatistics();
+  Utils.clearReceipts();
 
-  await gateway.activateGateway(coGateway.address, {from: owner});
+  let tx = await mockUtilityToken.setCoGateway(coGateway.address, {from: owner});
+  Utils.logReceipt(tx.receipt, "set co-gateway");
+  Utils.printGasStatistics();
+  Utils.clearReceipts();
+
+   tx = await gateway.activateGateway(coGateway.address, {from: owner});
+  Utils.logReceipt(tx.receipt, "Activate gateway");
+  Utils.printGasStatistics();
+  Utils.clearReceipts();
 
   return {
     gateway: gateway,
