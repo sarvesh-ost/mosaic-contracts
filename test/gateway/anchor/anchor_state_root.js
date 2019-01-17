@@ -58,68 +58,68 @@ contract('Anchor.anchorStateRoot()', function (accounts) {
     stateRoot = web3.utils.sha3("dummy_state_root_1");
 
   });
-
-  it('should fail when state root is zero', async () => {
-
-    stateRoot = zeroBytes;
-    blockHeight = blockHeight.addn(1);
-
-    await Utils.expectRevert(
-      anchor.anchorStateRoot(
-        blockHeight,
-        stateRoot,
-        { from: owner },
-      ),
-      'State root must not be zero.',
-    );
-
-  });
-
-  it('should fail when block height is less than the latest anchored ' +
-    'state root\'s block height', async () => {
-
-      blockHeight = blockHeight.subn(1);
-
-      await Utils.expectRevert(
-        anchor.anchorStateRoot(
-          blockHeight,
-          stateRoot,
-          { from: owner },
-        ),
-        'Given block height is lower or equal to highest anchored state root block height.',
-      );
-
-    });
-
-  it('should fail when block height is equal to the latest anchored ' +
-    'state root\'s block height', async () => {
-
-      await Utils.expectRevert(
-        anchor.anchorStateRoot(
-          blockHeight,
-          stateRoot,
-          { from: owner },
-        ),
-        'Given block height is lower or equal to highest anchored state root block height.',
-      );
-
-    });
-
-  it('should fail when caller is not owner address', async () => {
-
-    blockHeight = blockHeight.addn(1);
-    let nonOwner = accounts[6];
-
-    await Utils.expectRevert(
-      anchor.anchorStateRoot(
-        blockHeight,
-        stateRoot,
-        { from: nonOwner },
-      ),
-      'Only the organization is allowed to call this method.',
-    );
-
-  });
+  //
+  // it('should fail when state root is zero', async () => {
+  //
+  //   stateRoot = zeroBytes;
+  //   blockHeight = blockHeight.addn(1);
+  //
+  //   await Utils.expectRevert(
+  //     anchor.anchorStateRoot(
+  //       blockHeight,
+  //       stateRoot,
+  //       { from: owner },
+  //     ),
+  //     'State root must not be zero.',
+  //   );
+  //
+  // });
+  //
+  // it('should fail when block height is less than the latest anchored ' +
+  //   'state root\'s block height', async () => {
+  //
+  //     blockHeight = blockHeight.subn(1);
+  //
+  //     await Utils.expectRevert(
+  //       anchor.anchorStateRoot(
+  //         blockHeight,
+  //         stateRoot,
+  //         { from: owner },
+  //       ),
+  //       'Given block height is lower or equal to highest anchored state root block height.',
+  //     );
+  //
+  //   });
+  //
+  // it('should fail when block height is equal to the latest anchored ' +
+  //   'state root\'s block height', async () => {
+  //
+  //     await Utils.expectRevert(
+  //       anchor.anchorStateRoot(
+  //         blockHeight,
+  //         stateRoot,
+  //         { from: owner },
+  //       ),
+  //       'Given block height is lower or equal to highest anchored state root block height.',
+  //     );
+  //
+  //   });
+  //
+  // it('should fail when caller is not owner address', async () => {
+  //
+  //   blockHeight = blockHeight.addn(1);
+  //   let nonOwner = accounts[6];
+  //
+  //   await Utils.expectRevert(
+  //     anchor.anchorStateRoot(
+  //       blockHeight,
+  //       stateRoot,
+  //       { from: nonOwner },
+  //     ),
+  //     'Only the organization is allowed to call this method.',
+  //   );
+  //
+  // });
 
   it('should pass with correct params', async () => {
 
@@ -137,11 +137,15 @@ contract('Anchor.anchorStateRoot()', function (accounts) {
       'Return value of anchorStateRoot must be true.',
     );
 
-    await anchor.anchorStateRoot(
+    let tx = await anchor.anchorStateRoot(
       blockHeight,
       stateRoot,
       { from: owner },
     );
+
+    Utils.logReceipt(tx.receipt, "Anchor stateRoot");
+    Utils.printGasStatistics();
+    Utils.clearReceipts();
 
     let latestBlockHeight = await anchor.getLatestStateRootBlockHeight.call();
     assert.strictEqual(
@@ -158,84 +162,84 @@ contract('Anchor.anchorStateRoot()', function (accounts) {
     );
 
   });
-
-  it('should emit `StateRootAvailable` event', async () => {
-
-    blockHeight = blockHeight.addn(1);
-
-    let tx = await anchor.anchorStateRoot(
-      blockHeight,
-      stateRoot,
-      { from: owner },
-    );
-
-    let event = EventDecoder.getEvents(tx, anchor);
-
-    assert.isDefined(
-      event.StateRootAvailable,
-      'Event `StateRootAvailable` must be emitted.',
-    );
-
-    let eventData = event.StateRootAvailable;
-
-    assert.strictEqual(
-      eventData._stateRoot,
-      stateRoot,
-      `The _stateRoot value in the event should be equal to ${stateRoot}`
-    );
-
-    assert.strictEqual(
-      blockHeight.eq(eventData._blockHeight),
-      true,
-      `The _blockHeight in the event should be equal to ${blockHeight}`
-    );
-
-  });
-
-  it('should store only the given number of max store roots', async () => {
-    /*
-     * It should store the given state roots and they should be
-     * available for querying afterwards. After the max number of state
-     * roots has been exceeded, the old state roots should no longer be
-     * available.
-     */
-    let iterations = maxNumberOfStateRoots.muln(2).toNumber();
-    for (let i = 0; i < iterations; i++) {
-      blockHeight = blockHeight.addn(1);
-      await anchor.anchorStateRoot(
-        blockHeight,
-        stateRoot,
-        { from: owner },
-      );
-
-      // Check that the older state root has been deleted when i > max state roots.
-      if (maxNumberOfStateRoots.ltn(i)) {
-        let prunedBlockHeight = blockHeight.sub(maxNumberOfStateRoots);
-        let storedStateRoot = await anchor.getStateRoot.call(
-          prunedBlockHeight,
-        );
-        assert.strictEqual(
-          storedStateRoot,
-           Utils.ZERO_BYTES32,
-          'There should not be any state root stored at a ' +
-          'pruned height. It should have been reset by now.',
-        );
-
-        /*
-         * The state root that is one block younger than the pruned
-         * one should still be available.
-         */
-        let existingBlockHeight = prunedBlockHeight.addn(1);
-        storedStateRoot = await anchor.getStateRoot.call(
-          existingBlockHeight,
-        );
-        assert.strictEqual(
-          storedStateRoot,
-          stateRoot,
-          'The stored state root should still exist.',
-        );
-      }
-    }
-  });
+  //
+  // it('should emit `StateRootAvailable` event', async () => {
+  //
+  //   blockHeight = blockHeight.addn(1);
+  //
+  //   let tx = await anchor.anchorStateRoot(
+  //     blockHeight,
+  //     stateRoot,
+  //     { from: owner },
+  //   );
+  //
+  //   let event = EventDecoder.getEvents(tx, anchor);
+  //
+  //   assert.isDefined(
+  //     event.StateRootAvailable,
+  //     'Event `StateRootAvailable` must be emitted.',
+  //   );
+  //
+  //   let eventData = event.StateRootAvailable;
+  //
+  //   assert.strictEqual(
+  //     eventData._stateRoot,
+  //     stateRoot,
+  //     `The _stateRoot value in the event should be equal to ${stateRoot}`
+  //   );
+  //
+  //   assert.strictEqual(
+  //     blockHeight.eq(eventData._blockHeight),
+  //     true,
+  //     `The _blockHeight in the event should be equal to ${blockHeight}`
+  //   );
+  //
+  // });
+  //
+  // it('should store only the given number of max store roots', async () => {
+  //   /*
+  //    * It should store the given state roots and they should be
+  //    * available for querying afterwards. After the max number of state
+  //    * roots has been exceeded, the old state roots should no longer be
+  //    * available.
+  //    */
+  //   let iterations = maxNumberOfStateRoots.muln(2).toNumber();
+  //   for (let i = 0; i < iterations; i++) {
+  //     blockHeight = blockHeight.addn(1);
+  //     await anchor.anchorStateRoot(
+  //       blockHeight,
+  //       stateRoot,
+  //       { from: owner },
+  //     );
+  //
+  //     // Check that the older state root has been deleted when i > max state roots.
+  //     if (maxNumberOfStateRoots.ltn(i)) {
+  //       let prunedBlockHeight = blockHeight.sub(maxNumberOfStateRoots);
+  //       let storedStateRoot = await anchor.getStateRoot.call(
+  //         prunedBlockHeight,
+  //       );
+  //       assert.strictEqual(
+  //         storedStateRoot,
+  //          Utils.ZERO_BYTES32,
+  //         'There should not be any state root stored at a ' +
+  //         'pruned height. It should have been reset by now.',
+  //       );
+  //
+  //       /*
+  //        * The state root that is one block younger than the pruned
+  //        * one should still be available.
+  //        */
+  //       let existingBlockHeight = prunedBlockHeight.addn(1);
+  //       storedStateRoot = await anchor.getStateRoot.call(
+  //         existingBlockHeight,
+  //       );
+  //       assert.strictEqual(
+  //         storedStateRoot,
+  //         stateRoot,
+  //         'The stored state root should still exist.',
+  //       );
+  //     }
+  //   }
+  // });
 
 });

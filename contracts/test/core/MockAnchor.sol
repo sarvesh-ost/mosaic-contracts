@@ -49,12 +49,13 @@ contract MockAnchor is Anchor {
      *
      * @return bytes32 Mocked state root.
      */
-    function getStateRoot(uint256)
-        external
-        view
-        returns (bytes32)
-    {
-        // Hashing dummy data.
-        return keccak256(abi.encodePacked("dummy data"));
-    }
+//    function getStateRoot(uint256)
+//        external
+//        view
+//        returns (bytes32)
+//    {
+//        // Hashing dummy data.
+//        return bytes32(0x79b972ce2d535b00586c5611e7e66fa1e57b1b3775dbb86712320c2d7f946cc9);
+//        //keccak256(abi.encodePacked("dummy data"));
+//    }
 }
