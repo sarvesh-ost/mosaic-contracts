@@ -304,11 +304,22 @@ contract EIP20Gateway is GatewayBase {
 
         require(
             _amount > uint256(0),
-            "Stake amount must not be zero"
+            "Stake amount must not be zero."
         );
+
         require(
             _beneficiary != address(0),
-            "Beneficiary address must not be zero"
+            "Beneficiary address must not be zero."
+        );
+
+        /*
+         * Maximum reward possible is _gasPrice * _gasLimit, we check this
+         * upfront in this function to make sure that after minting of the
+         * tokens it is possible to give the reward to the facilitator.
+         */
+        require(
+            _amount > _gasPrice.mul(_gasLimit),
+            "Maximum possible reward must be less than the stake amount."
         );
 
         // Get the stake intent hash.
@@ -778,6 +789,23 @@ contract EIP20Gateway is GatewayBase {
 
     }
 
+    /**
+     * @notice Gets the penalty amount. If the message hash does not exist in
+     *         stakes mapping it will return zero amount. If the message is
+     *         already progressed or revoked then the penalty amount will be
+     *         zero.
+     *
+     * @param _messageHash Message hash.
+     *
+     * @return penalty_ Penalty amount.
+     */
+    function penalty(bytes32 _messageHash)
+        external
+        view
+        returns (uint256 penalty_)
+    {
+        penalty_ = super.penaltyFromBounty(stakes[_messageHash].bounty);
+    }
 
     /* Public Functions */
 
@@ -807,11 +835,11 @@ contract EIP20Gateway is GatewayBase {
      */
     function progressUnstakeWithProof(
         bytes32 _messageHash,
-        bytes memory _rlpParentNodes,
+        bytes calldata _rlpParentNodes,
         uint256 _blockHeight,
         uint256 _messageStatus
     )
-        public
+        external
         returns (
             uint256 redeemAmount_,
             uint256 unstakeAmount_,
@@ -823,7 +851,7 @@ contract EIP20Gateway is GatewayBase {
 
         require(
             _messageHash != bytes32(0),
-            "Message hash must not be zero"
+            "Message hash must not be zero."
         );
         require(
             _rlpParentNodes.length > 0,
