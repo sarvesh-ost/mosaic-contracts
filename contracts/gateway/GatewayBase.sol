@@ -253,6 +253,7 @@ contract GatewayBase is Organized {
             stateRoot
         );
 
+
         storageRoots[_blockHeight] = storageRoot;
 
         // wasAlreadyProved is false since Gateway is called for the first time

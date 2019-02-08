@@ -17,7 +17,8 @@ const MockMessageBus = artifacts.require("./gateway/MockMessageBus.sol");
 const MessageBusWrapper = artifacts.require('./test/MessageBusWrapper');
 const MockMerklePatriciaProof = artifacts.require('./test/MockMerklePatriciaProof');
 const MerklePatriciaProofTest = artifacts.require('./MerklePatriciaProofTest');
-const MerklePatriciaProof = artifacts.require('./MerklePatriciaProof');
+const
+  MerklePatriciaProof = artifacts.require('./MerklePatriciaProof');
 const TestKernelGateway = artifacts.require('TestKernelGateway');
 const TestKernelGatewayFail = artifacts.require('TestKernelGatewayFail');
 const KernelGateway = artifacts.require('KernelGateway');

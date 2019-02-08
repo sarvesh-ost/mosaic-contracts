@@ -36,7 +36,7 @@
   "scripts": {
     "compile": "truffle compile",
     "compile-all": "truffle compile --all",
-    "test": "truffle test",
+    "test": "truffle test test/proveGateway.js",
     "test:deployment_tool": "mocha tools/deployment_tool/test",
     "test:integration": "cd test_integration && ./main.sh",
     "ganache": "sh tools/runGanacheCli.sh",
