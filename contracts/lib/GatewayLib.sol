@@ -54,7 +54,7 @@ library GatewayLib {
         bytes32 _stateRoot
     )
         external
-        pure
+
         returns (bytes32 storageRoot_)
     {
         // Decode RLP encoded account value.

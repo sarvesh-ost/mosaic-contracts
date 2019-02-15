@@ -139,6 +139,8 @@ library MessageBus {
         _messageBox.outbox[messageHash_] = MessageStatus.Declared;
     }
 
+    event Path(bytes _path);
+
     /**
      * @notice Confirm a new message that is declared in outbox on the source
      *         chain. Merkle proof will be performed to verify the declared
@@ -178,6 +180,8 @@ library MessageBus {
                 messageHash_
             )
         );
+
+        emit Path(path);
 
         // Verify the merkle proof.
         require(

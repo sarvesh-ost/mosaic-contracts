@@ -67,7 +67,7 @@ contract TestKernelGatewayFail is TestKernelGateway{
         bytes32
     )
         internal
-        pure
+
         returns (bool success_)
     {
         success_ = false;

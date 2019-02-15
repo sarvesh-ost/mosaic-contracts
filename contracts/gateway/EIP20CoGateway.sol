@@ -1025,6 +1025,8 @@ contract EIP20CoGateway is GatewayBase {
             "Storage root must not be zero"
         );
 
+        emit Test(storageRoot);
+
         // Confirm message.
         MessageBus.confirmMessage(
             messageBox,

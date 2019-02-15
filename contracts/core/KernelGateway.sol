@@ -545,7 +545,7 @@ contract KernelGateway is KernelGatewayInterface {
         bytes32 _stateRoot
     )
         internal
-        pure
+
         returns (bytes32 storageRoot_)
     {
         // Decode RLP encoded account value.
@@ -636,7 +636,7 @@ contract KernelGateway is KernelGatewayInterface {
         bytes32 _root
     )
         internal
-        pure
+
         returns (bool success_)
     {
         success_ =  MerklePatriciaProof.verify(

@@ -27,7 +27,7 @@ contract MerklePatriciaProofTest {
         bytes calldata rlpParentNodes,
         bytes32 root)
         external
-        pure
+
         returns (bool)
     {
         return MerklePatriciaProof.verify(value,encodedPath,rlpParentNodes,root);
@@ -49,7 +49,7 @@ contract MerklePatriciaProofTest {
         bytes calldata rlpParentNodes,
         bytes32 root)
         external
-        pure
+
         returns (bool)
     {
         return MerklePatriciaProof.verify(value,encodedPath,rlpParentNodes,root);

@@ -9,6 +9,12 @@ pragma solidity ^0.5.0;
 import "./RLP.sol";
 
 library MerklePatriciaProof {
+
+    event Input(bytes32 value, bytes  encodedPath, bytes  rlpParentNodes, bytes32 root);
+
+    event MPPDebug(uint papthPtr, bytes path, bytes currentNode, bytes32 nodekey);
+
+    event Track(uint256 position);
     /**
      * @dev Verifies a merkle patricia proof.
      * @param value The terminating value in the trie.
@@ -24,9 +30,10 @@ library MerklePatriciaProof {
         bytes32 root
     )
         external
-        pure
+
         returns (bool)
     {
+        emit Input(value, encodedPath, rlpParentNodes, root);
         RLP.RLPItem memory item = RLP.toRLPItem(rlpParentNodes);
         RLP.RLPItem[] memory parentNodes = RLP.toList(item);
 
@@ -37,15 +44,17 @@ library MerklePatriciaProof {
         uint pathPtr = 0;
 
         bytes memory path = _getNibbleArray2(encodedPath);
+
         if(path.length == 0) {return false;}
 
-        for (uint i=0; i<parentNodes.length; i++) {
+
+        for (uint i=0; i<parentNodes.length/*-(parentNodes.length - 2)*/; i++) {
             if(pathPtr > path.length) {return false;}
+
 
             currentNode = RLP.toBytes(parentNodes[i]);
             if(nodeKey != keccak256(abi.encodePacked(currentNode))) {return false;}
             currentNodeList = RLP.toList(parentNodes[i]);
-
             if(currentNodeList.length == 17) {
                 if(pathPtr == path.length) {
                     if(keccak256(abi.encodePacked(RLP.toBytes(currentNodeList[16]))) == value) {
@@ -60,8 +69,9 @@ library MerklePatriciaProof {
                 nodeKey = RLP.toBytes32(currentNodeList[nextPathNibble]);
                 pathPtr += 1;
             } else if(currentNodeList.length == 2) {
+                uint pathPtrTemp = pathPtr;
                 pathPtr += _nibblesToTraverse(RLP.toData(currentNodeList[0]), path, pathPtr);
-
+                emit Track(1);
                 if(pathPtr == path.length) {//leaf node
                     if(keccak256(abi.encodePacked(RLP.toData(currentNodeList[1]))) == value) {
                         return true;
@@ -69,16 +79,22 @@ library MerklePatriciaProof {
                         return false;
                     }
                 }
+                emit Track(2);
                 //extension node ... test if means that it is empty value
-                if(_nibblesToTraverse(RLP.toData(currentNodeList[0]), path, pathPtr) == 0) {
+                if(_nibblesToTraverse(RLP.toData(currentNodeList[0]), path, pathPtrTemp) == 0) {
                     return (keccak256(abi.encodePacked()) == value);
                 }
 
+                emit Track(3);
                 nodeKey = RLP.toBytes32(currentNodeList[1]);
             } else {
+                emit Track(4);
                 return false;
             }
+
+            emit MPPDebug(pathPtr,path, currentNode, nodeKey);
         }
+        return true;
     }
 
     function verifyDebug(
@@ -88,7 +104,7 @@ library MerklePatriciaProof {
         bytes32 root
     )
         public
-        pure
+
         returns (bool res_, uint loc_, bytes memory path_debug_)
     {
         RLP.RLPItem memory item = RLP.toRLPItem(rlpParentNodes);
@@ -172,13 +188,15 @@ library MerklePatriciaProof {
         loc_ = 8;
     }
 
+  event DebugPath(bytes encodedPartialPath ,bytes partialPath, bytes slicedPath);
+
     function _nibblesToTraverse(
         bytes memory encodedPartialPath,
         bytes memory path,
         uint pathPtr
     )
         private
-        pure
+
         returns (uint len_)
     {
         // encodedPartialPath has elements that are each two hex characters (1 byte), but partialPath
@@ -193,11 +211,13 @@ library MerklePatriciaProof {
             slicedPath[i-pathPtr] = pathNibble;
         }
 
+        emit DebugPath(encodedPartialPath, partialPath , slicedPath);
         if(keccak256(abi.encodePacked(partialPath)) == keccak256(abi.encodePacked(slicedPath))) {
             len_ = partialPath.length;
         } else {
             len_ = 0;
         }
+        //len_=partialPath.length;
     }
 
     // bytes b must be hp encoded

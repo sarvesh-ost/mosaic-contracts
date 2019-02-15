@@ -180,6 +180,7 @@ contract GatewayBase is Organized {
     }
 
 
+    event Test(bytes32 stateRoot);
     /* External Functions */
 
     /**
@@ -221,7 +222,7 @@ contract GatewayBase is Organized {
         );
 
         bytes32 stateRoot = stateRootProvider.getStateRoot(_blockHeight);
-
+        emit Test(stateRoot);
         // State root should be present for the block height
         require(
             stateRoot != bytes32(0),

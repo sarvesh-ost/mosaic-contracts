@@ -49,5 +49,9 @@
     "dist"
   ],
   "author": "OpenST Foundation Ltd.",
-  "license": "Apache v2.0"
+  "license": "Apache v2.0",
+  "dependencies": {
+    "eth-proof": "^1.0.0",
+    "merkle-patricia-tree": "^3.0.0"
+  }
 }

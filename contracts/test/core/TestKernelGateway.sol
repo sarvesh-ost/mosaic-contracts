@@ -66,7 +66,7 @@ contract TestKernelGateway is KernelGateway{
         bytes32
     )
         internal
-        pure
+
         returns (bool success_)
     {
         success_ = true;
