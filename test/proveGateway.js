@@ -3,8 +3,6 @@ const MockAnchor = artifacts.require('MockAnchor');
 const BN = require('bn.js');
 const rlp = require('rlp');
 
-const Trie = require('merkle-patricia-tree');
-
 contract('prove outbox()', (accounts) => {
     let cogateway;
     it('should pass', () => {
@@ -95,8 +93,6 @@ contract('prove outbox()', (accounts) => {
             _rlpParentNodes: _serializeProof(storageProof),
         };
 
-        merkelPatriciaTree(storageProof);
-
         console.log('params  proof  ', params._rlpParentNodes);
         const tx = await cogateway.confirmStakeIntent(
             params._staker,
@@ -113,15 +109,4 @@ contract('prove outbox()', (accounts) => {
         console.log('tx  ', JSON.stringify(tx));
     });
 
-    function merkelPatriciaTree(storagProof) {
-        Trie.verifyProof(
-            '0xa506e7e444fc636360bb593a808f41f126a8813ea71410d4515987eacc594380',
-            '0x48646dea90a411a166aa5a7745235311b09673fc40332989e7217029a07882bb',
-            storagProof,
-            (err, value) => {
-                console.log('Errr ', err);
-                console.log('Value ', value);
-            },
-        );
-    }
 });

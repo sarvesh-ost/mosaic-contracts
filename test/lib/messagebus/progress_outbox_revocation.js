@@ -18,78 +18,71 @@
 //
 // ----------------------------------------------------------------------------
 
-const messageBusUtilsKlass = require('./messagebus_utils');
-const messageBusUtils = new messageBusUtilsKlass();
+const MessageBusUtils = require('./messagebus_utils');
 const messageBus = require('../../test_lib/message_bus.js');
 
-let MessageStatusEnum = messageBus.MessageStatusEnum;
+const { MessageStatusEnum } = messageBus;
 
 contract('MessageBus.progressOutboxRevocation()', async (accounts) => {
-    let params;
+  let params;
 
-    beforeEach(async function () {
+  beforeEach(async () => {
+    await MessageBusUtils.deployedMessageBus();
+    params = MessageBusUtils.defaultParams(accounts);
+  });
 
-        await messageBusUtils.deployedMessageBus();
-        params = messageBusUtils.defaultParams(accounts);
-    });
+  it('should fail target message is undeclared', async () => {
+    const message = 'Message on target status must be Revoked.';
+    params.message = message;
 
-    it('should fail target message is undeclared', async () => {
-        let message = 'Message on target status must be Revoked.';
-        params.message = message;
+    params.messageStatus = MessageStatusEnum.Undeclared;
+    await MessageBusUtils.progressOutboxRevocation(params, false);
+  });
 
-        params.messageStatus = MessageStatusEnum.Undeclared;
-        await messageBusUtils.progressOutboxRevocation(params, false);
-    });
+  it('should fail target message is declared', async () => {
+    const message = 'Message on target status must be Revoked.';
+    params.message = message;
 
-    it('should fail target message is declared', async () => {
-        let message = 'Message on target status must be Revoked.';
-        params.message = message;
+    params.messageStatus = MessageStatusEnum.Declared;
+    await MessageBusUtils.progressOutboxRevocation(params, false);
+  });
 
-        params.messageStatus = MessageStatusEnum.Declared;
-        await messageBusUtils.progressOutboxRevocation(params, false);
-    });
+  it('should fail target message is progressed', async () => {
+    const message = 'Message on target status must be Revoked.';
+    params.message = message;
 
-    it('should fail target message is progressed', async () => {
-        let message = 'Message on target status must be Revoked.';
-        params.message = message;
+    params.messageStatus = MessageStatusEnum.Progressed;
+    await MessageBusUtils.progressOutboxRevocation(params, false);
+  });
 
-        params.messageStatus = MessageStatusEnum.Progressed;
-        await messageBusUtils.progressOutboxRevocation(params, false);
-    });
+  it('should fail when source message status is declared ', async () => {
+    const message = 'Message status on source must be DeclaredRevocation.';
+    params.message = message;
 
+    await MessageBusUtils.declareMessage(params, true);
+    params.messageStatus = MessageStatusEnum.Revoked;
+    await MessageBusUtils.progressOutboxRevocation(params, false);
+  });
 
-    it('should fail when source message status is declared ', async () => {
-        let message = 'Message status on source must be DeclaredRevocation.';
-        params.message = message;
+  it('should fail when source message status is progressed ', async () => {
+    const message = 'Message status on source must be DeclaredRevocation.';
+    params.message = message;
 
-        await messageBusUtils.declareMessage(params, true);
-        params.messageStatus = MessageStatusEnum.Revoked;
-        await messageBusUtils.progressOutboxRevocation(params, false);
+    await MessageBusUtils.declareMessage(params, true);
+    await MessageBusUtils.progressOutbox(params, true);
+    params.messageStatus = MessageStatusEnum.Revoked;
+    await MessageBusUtils.progressOutboxRevocation(params, false);
+  });
 
-    });
+  it('should fail when source message status is revoked', async () => {
+    const message = 'Message status on source must be DeclaredRevocation.';
+    params.message = message;
 
-    it('should fail when source message status is progressed ', async () => {
-        let message = 'Message status on source must be DeclaredRevocation.';
-        params.message = message;
+    await MessageBusUtils.declareMessage(params, true);
+    await MessageBusUtils.declareRevocationMessage(params, true);
+    params.messageStatus = MessageStatusEnum.Revoked;
+    await MessageBusUtils.progressOutboxRevocation(params, true);
 
-        await messageBusUtils.declareMessage(params, true);
-        await messageBusUtils.progressOutbox(params, true);
-        params.messageStatus = MessageStatusEnum.Revoked;
-        await messageBusUtils.progressOutboxRevocation(params, false);
-
-    });
-
-    it('should fail when source message status is revoked', async () => {
-        let message = 'Message status on source must be DeclaredRevocation.';
-        params.message = message;
-
-        await messageBusUtils.declareMessage(params, true);
-        await messageBusUtils.declareRevocationMessage(params, true);
-        params.messageStatus = MessageStatusEnum.Revoked;
-        await messageBusUtils.progressOutboxRevocation(params, true);
-
-        await messageBusUtils.progressOutboxRevocation(params, false);
-
-    });
+    await MessageBusUtils.progressOutboxRevocation(params, false);
+  });
 });
-
