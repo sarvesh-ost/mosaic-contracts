@@ -55,6 +55,6 @@ contract MockAnchor is Anchor {
         returns (bytes32)
     {
         // Hashing dummy data.
-        return 0x493c4acaa49946c92d3b4428f8269b44230acccb0526693078357b06b26b29a7;
+        return 0x1157367a3d0487c60445173515522c6ab0dc69c55c6386c92fd4124a6c428f76;
     }
 }

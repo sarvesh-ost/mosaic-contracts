@@ -628,10 +628,10 @@ contract GatewayBase is Organized {
     )
         internal
     {
-        require(
-            _nonce == _getInboxNonce(_account),
-            "Invalid nonce"
-        );
+//        require(
+//            _nonce == _getInboxNonce(_account),
+//            "Invalid nonce"
+//        );
 
         bytes32 previousMessageHash = inboxActiveProcess[_account];
 

@@ -55,6 +55,8 @@ library MerklePatriciaProof {
             currentNode = RLP.toBytes(parentNodes[i]);
             if(nodeKey != keccak256(abi.encodePacked(currentNode))) {return false;}
             currentNodeList = RLP.toList(parentNodes[i]);
+
+
             if(currentNodeList.length == 17) {
                 if(pathPtr == path.length) {
                     if(keccak256(abi.encodePacked(RLP.toBytes(currentNodeList[16]))) == value) {
@@ -69,6 +71,7 @@ library MerklePatriciaProof {
                 nodeKey = RLP.toBytes32(currentNodeList[nextPathNibble]);
                 pathPtr += 1;
             } else if(currentNodeList.length == 2) {
+
                 uint currentpathPtr = pathPtr;
                 pathPtr += _nibblesToTraverse(RLP.toData(currentNodeList[0]), path, pathPtr);
                 emit Track(1);
