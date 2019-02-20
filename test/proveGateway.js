@@ -19,6 +19,7 @@ contract('prove outbox()', (accounts) => {
   function encodedAccountValue(accountProof) {
     const decodedProof = rlp.decode(accountProof);
     const leafElement = decodedProof[decodedProof.length - 1];
+    console.log("decoded account  ", rlp.decode(leafElement[1]));
     return `0x${leafElement[leafElement.length - 1].toString('hex')}`;
   }
 
@@ -75,7 +76,7 @@ contract('prove outbox()', (accounts) => {
       rlpParentNodes,
     );
 
-    console.log('tx  ', tx);
+    console.log('Account tx  ', JSON.stringify(tx));
   });
 
   it('should prove outbox storage', async () => {
@@ -106,6 +107,6 @@ contract('prove outbox()', (accounts) => {
       params._rlpParentNodes,
     );
 
-    console.log('tx  ', JSON.stringify(tx));
+    console.log('storage tx  ', JSON.stringify(tx));
   });
 });
