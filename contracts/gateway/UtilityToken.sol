@@ -46,6 +46,8 @@ contract UtilityToken is EIP20Token, Organized, UtilityTokenInterface {
     /** Address of the EIP20 token (branded token) in origin chain. */
     EIP20Interface public token;
 
+    //todo make token -> valueToken across contract?
+
     /** Address of CoGateway contract. */
     address public coGateway;
 
@@ -76,7 +78,7 @@ contract UtilityToken is EIP20Token, Organized, UtilityTokenInterface {
      * @param _organization Address of a contract that manages organization.
      */
     constructor(
-        EIP20Interface _token,
+        EIP20Interface _token, //todo type to address
         string memory _symbol,
         string memory _name,
         uint8 _decimals,

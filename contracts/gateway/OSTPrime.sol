@@ -54,7 +54,7 @@ contract OSTPrime is UtilityToken, OSTPrimeConfig, MutexAddress {
         address indexed _account,
         uint256 _amount
     );
-
+     //todo rethink on renaming base token on gateway and aux chain (eg. OST to coin and coin to OST)
     /** Emitted whenever OST Prime base token is converted to OST Prime token. */
     event TokenWrapped(
         address indexed _account,
@@ -253,6 +253,7 @@ contract OSTPrime is UtilityToken, OSTPrimeConfig, MutexAddress {
          * Acquire lock for msg.sender so that this function can only be
          * executed once in a transaction.
          */
+        //todo explicitly add co-gateway address
         MutexAddress.acquire(msg.sender);
 
         success_ = increaseSupplyInternal(address(this), _amount);

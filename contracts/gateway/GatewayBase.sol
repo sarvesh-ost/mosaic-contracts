@@ -72,9 +72,9 @@ contract GatewayBase is Organized {
     /**
      * Penalty in bounty amount percentage charged to staker on revert stake.
      */
-    uint8 constant REVOCATION_PENALTY = 150;
+    uint8 constant REVOCATION_PENALTY = 150; //todo more general comments
 
-    //todo identify how to get block time for both chains
+    //todo identify how to get block time for both chains (7days on aux chain)
     /** Unlock period for change bounty in block height. */
     uint256 private constant BOUNTY_CHANGE_UNLOCK_PERIOD = 100;
 
@@ -118,7 +118,7 @@ contract GatewayBase is Organized {
     mapping(bytes32 => MessageBus.Message) public messages;
 
     /** Maps blockHeight to storageRoot. */
-    mapping(uint256 => bytes32) internal storageRoots;
+    mapping(uint256 => bytes32) internal storageRoots; //todo add circular buffer
 
 
     /* Private Variables */
@@ -458,6 +458,7 @@ contract GatewayBase is Organized {
             uint256 totalGasConsumed_
         )
     {
+    //todo improve language
         totalGasConsumed_ = _initialGas.add(
             _gasConsumed
         ).sub(
@@ -683,7 +684,7 @@ contract GatewayBase is Organized {
         returns(uint256)
     {
         if (_messageHash == bytes32(0)) {
-            return 1;
+            return 1; //todo nonce starts with zero
         }
 
         MessageBus.Message storage message =

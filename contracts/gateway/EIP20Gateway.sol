@@ -141,7 +141,7 @@ contract EIP20Gateway is GatewayBase {
         uint256 _amount
     );
 
-
+   //todo try to make events for specific to message bus states
     /* Struct */
 
     /**
@@ -496,7 +496,8 @@ contract EIP20Gateway is GatewayBase {
         );
 
         // Return revert penalty to staker if message is already progressed
-        // and can't be reverted anymore.
+        // and can't be reverted anymore
+            //todo Re-evaluate if we need this
         tryReturnPenaltyToStaker(
             staker_,
             outboxMessageStatus,
@@ -1007,7 +1008,7 @@ contract EIP20Gateway is GatewayBase {
             redeemerNonce_,
             amount_
         );
-
+        // todo move this up
         delete unstakes[_messageHash];
     }
 
@@ -1063,6 +1064,7 @@ contract EIP20Gateway is GatewayBase {
         );
         activated = false;
         success_ = true;
+        //todo event?
     }
 
 
@@ -1215,7 +1217,7 @@ contract EIP20Gateway is GatewayBase {
             message.gasPrice,
             _initialGas
         );
-
+        //todo add check in confirmRedeem and confirmStake (medium)
         require(
             rewardAmount_ < redeemAmount_,
             "Reward amount must be less than redeem amount."

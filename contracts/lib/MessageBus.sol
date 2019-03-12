@@ -243,7 +243,7 @@ library MessageBus {
      * @param _messageBoxOffset Position of the messageBox.
      * @param _storageRoot Storage root for proof.
      * @param _messageStatus Message status of message hash in the inbox of
-     *                       source chain.
+     *                       source chain. //todo comments
      *
      * @return messageHash_ Message hash.
      */
@@ -253,7 +253,7 @@ library MessageBus {
         bytes calldata _rlpParentNodes,
         uint8 _messageBoxOffset,
         bytes32 _storageRoot,
-        MessageStatus _messageStatus
+        MessageStatus _messageStatus // todo inboxMessageStatus
     )
         external
         returns (bytes32 messageHash_)
@@ -367,7 +367,7 @@ library MessageBus {
         bytes calldata _rlpParentNodes,
         uint8 _messageBoxOffset,
         bytes32 _storageRoot,
-        MessageStatus _messageStatus
+        MessageStatus _messageStatus //outbox
     )
         external
         returns (bytes32 messageHash_)
@@ -640,7 +640,7 @@ library MessageBus {
      *
      * @return success_ `true` if the signature is signed by the signer.
      */
-    function verifySignature(
+    function verifySignature( //todo dead code
         bytes32 _message,
         bytes memory _signature,
         address _signer
@@ -712,6 +712,7 @@ library MessageBus {
         );
     }
 
+     //todo clean bytes lib
     /**
      * @notice Convert bytes32 to bytes.
      *

@@ -213,7 +213,7 @@ contract EIP20CoGateway is GatewayBase {
      * @param _burner Address where tokens will be burned.
      */
     constructor(
-        address _valueToken,
+        address _valueToken, //todo do we need this?
         address _utilityToken,
         StateRootInterface _stateRootProvider,
         uint256 _bounty,
@@ -718,7 +718,7 @@ contract EIP20CoGateway is GatewayBase {
             storageRoot != bytes32(0),
             "Storage root must not be zero."
         );
-
+        // todo rename to redeem
         Redeem storage redeemProcess = redeems[_messageHash];
 
         redeemer_ = message.sender;
@@ -897,7 +897,7 @@ contract EIP20CoGateway is GatewayBase {
         address _beneficiary,
         uint256 _gasPrice,
         uint256 _gasLimit,
-        uint256 _nonce,
+        uint256 _nonce, //todo Do we need to pass it here?
         bytes32 _hashLock
     )
         external
