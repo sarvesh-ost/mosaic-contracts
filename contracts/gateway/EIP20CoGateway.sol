@@ -1135,7 +1135,7 @@ contract EIP20CoGateway is GatewayBase {
             payableBeneficiary,
             mintedAmount_
         );
-
+         //todo remove if and allow zero transfer
         if(rewardAmount_ > 0) {
             // Reward beneficiary with the reward amount.
             UtilityTokenInterface(utilityToken).increaseSupply(
